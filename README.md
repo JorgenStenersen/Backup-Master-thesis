@@ -10,10 +10,14 @@ For developing and solving the NMMWPBP
 ## Setup
 
 ### macOS / Linux
+<pre>
+```bash
 python -m venv thesis-env
 source thesis-env/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
+```
+</pre>
 
 ### Windows
 python -m venv thesis-env
@@ -28,6 +32,8 @@ python -m scripts.run_main
 
 
 ## Project structure
+<pre>
+```text
 master-thesis/
 │
 ├── data/                   # Input data
@@ -50,3 +56,6 @@ master-thesis/
 ├── requirements.txt        # Python dependencies
 ├── README.md
 └── .gitignore
+```
+</pre>
+
