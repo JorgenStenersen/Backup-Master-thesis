@@ -4,7 +4,7 @@ import pyarrow
 import fastparquet
 import os
 from datetime import datetime
-from utils import select_scenarios
+from src.utils import select_scenarios
 
 
 def load_parameters_from_csv(path):

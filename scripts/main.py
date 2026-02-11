@@ -1,6 +1,6 @@
-from model import run_model
-from model import run_robustness_experiment
-from benchmark import run_deterministic_benchmark
+from src.model import run_model
+from src.model import run_robustness_experiment
+from src.benchmark import run_deterministic_benchmark
 
 if __name__ == "__main__":
     path = "./input_data_10.csv"

@@ -14,3 +14,12 @@ data/processed/
 *.pickle
 *.joblib
 *.zip
+
+# Ignore env
+thesis-env/
+
+#Ignore python cache
+__pycache__/
+
+#ignore results
+results/

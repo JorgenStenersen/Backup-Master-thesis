@@ -2,8 +2,8 @@ import itertools
 import gurobipy as gp
 from gurobipy import GRB
 import numpy as np
-import tree
-import utils
+import src.tree as tree
+import src.utils as utils
 import json
 import statistics
 
