@@ -22,4 +22,4 @@ pip install -r requirements.txt
 
 ## Run
 
-python main.py
+python -m scripts.run_main
