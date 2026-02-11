@@ -1,0 +1,16 @@
+# ------------------------
+# Data (don't commit raw / processed data)
+# ------------------------
+data/raw/
+data/processed/
+*.csv
+*.tsv
+*.parquet
+*.xlsx
+*.xls
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.joblib
+*.zip
