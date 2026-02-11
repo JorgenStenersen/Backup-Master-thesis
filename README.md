@@ -6,6 +6,7 @@ For developing and solving the NMMWPBP
 - Python 3.12.x
 - Gurobi 12.0.x (must be installed separately)
 
+
 ## Setup
 
 ### macOS / Linux
@@ -20,6 +21,31 @@ thesis-env\Scripts\activate
 pip install --upgrade pip
 pip install -r requirements.txt
 
+
 ## Run
 
 python -m scripts.run_main
+
+
+## Project structure
+master-thesis/
+│
+├── data/
+│   └── raw/                # Input data
+│
+├── results/                # Generated results (not tracked by git)
+│
+├── scripts/
+│   └── run_main.py         # Entry point for running the model
+│
+├── src/                    # Core model implementation
+│   ├── model.py
+│   ├── tree.py
+│   ├── benchmark.py
+│   ├── RVMSS.py
+│   ├── read.py
+│   └── utils.py
+│
+├── requirements.txt        # Python dependencies
+├── README.md
+└── .gitignore
