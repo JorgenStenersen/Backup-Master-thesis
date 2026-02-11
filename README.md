@@ -11,29 +11,27 @@ For developing and solving the NMMWPBP
 
 ### macOS / Linux
 <pre>
-```bash
 python -m venv thesis-env
 source thesis-env/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
-```
 </pre>
 
 ### Windows
+<pre>
 python -m venv thesis-env
 thesis-env\Scripts\activate
 pip install --upgrade pip
 pip install -r requirements.txt
-
+</pre>
 
 ## Run
-
+<pre>
 python -m scripts.run_main
-
+</pre>
 
 ## Project structure
 <pre>
-```text
 master-thesis/
 │
 ├── data/                   # Input data
@@ -56,6 +54,6 @@ master-thesis/
 ├── requirements.txt        # Python dependencies
 ├── README.md
 └── .gitignore
-```
+
 </pre>
 
