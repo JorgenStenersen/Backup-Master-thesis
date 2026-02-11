@@ -80,7 +80,7 @@ def _to_utc_datetime(series: pd.Series) -> pd.Series:
 
 def load_market_data(
     time_str: str,
-    raw_path: str = "data/raw",
+    raw_path: str = "data",
     area: str = "NO3",
     park: str = "roan",
 ):
@@ -258,7 +258,7 @@ def load_parameters_from_parquet(time_str: str, scenarios: int, seed=None):
     print(f"\nLoading market data for time: {time_str}")
     data = load_market_data(
         time_str=time_str,
-        raw_path="data/raw",
+        raw_path="data",
         area="NO3",
         park="roan",
     )
@@ -281,11 +281,11 @@ def load_parameters_from_parquet(time_str: str, scenarios: int, seed=None):
     return CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices
 
 
-# path = "data/raw/mfrr_eam_up_forecasts.parquet"
+# path = "data/mfrr_eam_up_forecasts.parquet"
 # mmo_data = load_mmo_data(path)
-# path = "data/raw/mfrr_eam_down_forecasts.parquet"
+# path = "data/mfrr_eam_down_forecasts.parquet"
 # mmo_data = load_mmo_data(path)
-# path = "data/raw/imbalance_forecasts.parquet"
+# path = "data/imbalance_forecasts.parquet"
 # mmo_data = load_mmo_data(path)
 
 

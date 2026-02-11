@@ -1,7 +1,7 @@
 # ------------------------
 # Data (don't commit raw / processed data)
 # ------------------------
-data/raw/
+data/
 data/processed/
 *.csv
 *.tsv

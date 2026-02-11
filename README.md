@@ -30,21 +30,22 @@ python -m scripts.run_main
 ## Project structure
 master-thesis/
 │
-├── data/
-│   └── raw/                # Input data
+├── data/                   # Input data
 │
 ├── results/                # Generated results (not tracked by git)
 │
 ├── scripts/
 │   └── run_main.py         # Entry point for running the model
 │
-├── src/                    # Core model implementation
+├── src/                    # Core model code
 │   ├── model.py
 │   ├── tree.py
-│   ├── benchmark.py
-│   ├── RVMSS.py
 │   ├── read.py
 │   └── utils.py
+│
+├── experiments/            # Experiment logic
+│   ├── benchmark.py
+│   └── rvmss.py
 │
 ├── requirements.txt        # Python dependencies
 ├── README.md
