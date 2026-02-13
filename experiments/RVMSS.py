@@ -2,7 +2,7 @@
 
 import statistics
 
-from model import run_model       # stochastic model
+from src.model import run_model       # stochastic model
 from benchmark import run_deterministic_benchmark   # deterministic benchmark
 
 
