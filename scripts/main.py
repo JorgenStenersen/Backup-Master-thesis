@@ -1,6 +1,6 @@
 from src.model import run_model
-from src.model import run_robustness_experiment
-from src.benchmark import run_deterministic_benchmark
+from experiments.robustness import run_robustness_experiment
+from experiments.benchmark import run_deterministic_benchmark
 
 if __name__ == "__main__":
     path = "./input_data_10.csv"
@@ -10,5 +10,8 @@ if __name__ == "__main__":
     seed = 15
     number_of_runs = 20
     run_model(time_str, n, seed, verbose=verbose)
+    
+    
+    
     # run_robustness_experiment(time_str, n, number_of_runs, 5)
     #run_deterministic_benchmark(time_str, n, seed)
