@@ -1,13 +1,15 @@
 import itertools
+from xml.parsers.expat import model
 import gurobipy as gp
 from gurobipy import GRB
 import numpy as np
 import src.tree as tree
 import src.utils as utils
 import json
+from src.model_container import ModelContainer
 
 
-def run_model(time_str: str, n:int, seed=None, det_policy_file=None, evaluate_deterministic_policy=False, only_da_and_eam=False, verbose=True):
+def build_model(time_str: str, n:int, seed=None):
 
     model = gp.Model()
 
@@ -41,10 +43,17 @@ def run_model(time_str: str, n:int, seed=None, det_policy_file=None, evaluate_de
     idx_ms, idx_mw = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
     print("[INFO] Built index sets.")
 
-    # --- PARAMETERS ---
-    print ("[INFO] Building scenario tree")
-    
+    model._sets = {
+        "U": U,
+        "V": V,
+        "W": W,
+        "M_u": M_u,
+        "M_v": M_v,
+        "M_w": M_w,
+    }
 
+    # --- PARAMETERS ---
+    
     P = utils.build_price_parameter(scenario_tree)
     Q = utils.build_production_capacity(scenario_tree)
     C = utils.build_cost_parameters(U, V, W, P)
@@ -54,7 +63,6 @@ def run_model(time_str: str, n:int, seed=None, det_policy_file=None, evaluate_de
 
     BIGM_1 = max(Pmax.values())
     BIGM_2 = max(Q.values())  # maksimal produksjonskapasitet
-    BIGM_3 = 2*BIGM_2
 
     epsilon = 1e-3
 
@@ -62,6 +70,12 @@ def run_model(time_str: str, n:int, seed=None, det_policy_file=None, evaluate_de
 
     r_MAX_EAM_up   = 0  # maks pris for EAM up
     r_MAX_EAM_down = 0    # maks pris for EAM down
+
+    model._params = {
+        "P": P,
+        "Q": Q,
+        "C": C,
+    }
 
 
     # --- VARIABLES ---
@@ -84,16 +98,17 @@ def run_model(time_str: str, n:int, seed=None, det_policy_file=None, evaluate_de
     # Imbalance. Differanse mellom faktisk produksjon og produksjonsforpliktelse
     i = model.addVars([w for w in W_all], lb=0, name="i")
 
-    """
-    # Overlappende avvik mellom CM og EAM for retning a
-    d_overlap = model.addVars(idx_aw, lb=0, name="d_overlap")
-    # Binær variabel for å håndtere overlappende avvik
-    eta_overlap = model.addVars(idx_aw, vtype=GRB.BINARY, name="eta_overlap")
-    # minimum av a_CM og d_EAM for retning a
-    mu = model.addVars(idx_aw, lb=0, name="mu")
-    # variabel for minimumsfunksjon. 1 dersom d_EAM < a_CM og 0 ellers
-    lam = model.addVars(idx_aw, lb=0, name="lam")
-    """
+    #model._vars = {
+    #    "x": x,
+    #    "r": r,
+    #    "delta": delta,
+    #    "a": a,
+    #    "d": d,
+    #    "b": b,
+    #    "l": l,
+    #    "i": i
+    #}
+
 
 
     # --- OBJECTIVE FUNCTION ---s
@@ -131,10 +146,8 @@ def run_model(time_str: str, n:int, seed=None, det_policy_file=None, evaluate_de
                     P[ (m, w) ] * a[m, w] for m in M_w
                 )
 
-                imbalance_w = gp.quicksum(
-                    P[ ("imb", w) ] * i[w] for w in W_all
-                )
-
+                imbalance_w = P[ ("imb", w) ] * i[w]
+                
                 penalty_w = gp.quicksum(
                     C[ (m, w) ] * d[m, w] for m in M_u + M_w
                 )
@@ -320,9 +333,6 @@ def run_model(time_str: str, n:int, seed=None, det_policy_file=None, evaluate_de
 
 
 
-            
-
-
     # Minimum bid quantity constraints for mFRR markets (CM and EAM)
     for (m, s) in b.keys():
         # Hvis b[m,s] = 1  ->  x[m,s] ≥ MIN_Q
@@ -367,53 +377,69 @@ def run_model(time_str: str, n:int, seed=None, det_policy_file=None, evaluate_de
             model.addConstr(
                 r[m, s] <= Pmax[m]
             )
-        
 
 
-    # --- EVALUATE DETERMINISTIC CM POLICY ---
-    if evaluate_deterministic_policy:
+    # --- CREATE MODEL CONTAINER ---
+    model_container = ModelContainer(
+        model=model,
+        vars={
+            "x": x,
+            "r": r,
+            "delta": delta,
+            "a": a,
+            "d": d,
+            "b": b,
+            "l": l,
+            "i": i
+        },
+        params={
+            "P": P,
+            "Q": Q,
+            "C": C
+        },
+        sets={
+            "U": U,
+            "V": V,
+            "W": W,
+            "M_u": M_u,
+            "M_v": M_v,
+            "M_w": M_w
+        }
+    )
 
-        with open(det_policy_file, "r") as f:
-            det_policy = json.load(f)
+    return model_container
 
-        # fiks x,r (CM) til den deterministiske policyen
-        for m in det_policy if m in M_u else []:
-            for s in S:
-                if (m, s) in x:  # sjekk at paret finnes
-                    model.addConstr(x[m, s] == det_policy[m]["x"],
-                                    name=f"fix_x_{m}_{s}")
-                    model.addConstr(r[m, s] == det_policy[m]["r"],
-                                    name=f"fix_r_{m}_{s}")
 
-    # --- EVALUATE MODEL WITH ONLY DA AND EAM ---
-    if only_da_and_eam:
-        for m in M_u:
-            for u in U:
-                if (m, u) in x:  # sjekk at paret finnes
-                    model.addConstr(x[m, u] == 0,
-                                    name=f"fix_x_zero_{m}_{s}")
-                    model.addConstr(r[m, u] == 0,
-                                    name=f"fix_r_zero_{m}_{s}")
-    
+
+def run_model(model_container, verbose=True):
+
+    model = model_container.model
+    x = model_container.vars["x"]
+    r = model_container.vars["r"]
+    a = model_container.vars["a"]
+    delta = model_container.vars["delta"]
+    d = model_container.vars["d"]
+    i = model_container.vars["i"]
+    l = model_container.vars["l"]
+
+    Q = model_container.params["Q"]
+    P = model_container.params["P"]
+
+    U = model_container.sets["U"]
+    V = model_container.sets["V"]
+    W = model_container.sets["W"]
+    M_u = model_container.sets["M_u"]
+    M_v = model_container.sets["M_v"]
+    M_w = model_container.sets["M_w"]
 
     print("Added all constraints, starting to optimize model...")
     # --- OPTIMIZE MODEL ---
     
     model.optimize()
+    
     runtime = model.Runtime
     print(f"Model optimized in {runtime:.2f} seconds.")
 
-    model.optimize()
-
-    print("Model is infeasible or unbounded, computing IIS...")
-    model.setParam("DualReductions", 0)
-    model.optimize()
-    if model.Status == GRB.INFEASIBLE:
-        model.computeIIS()
-        model.write("model_iis.ilp")
-        print("Wrote IIS to model_iis.ilp")
-    else:
-        print("Model is unbounded or still INF_OR_UNBD")
 
     # --- PRINT RESULTS ---
     if verbose:
