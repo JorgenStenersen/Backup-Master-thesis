@@ -94,9 +94,7 @@ def sort_nodes(node_set):
 
 
 
-def print_results(model, x, r, a, delta, d, i, l, Q, P,
-                  U, V, W, M1, M2, M3,
-                  max_u=3, max_v_per_u=3, max_w_per_v=4):
+def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
     """
     Skriver ut en komprimert oversikt over løsningen.
 
@@ -104,6 +102,26 @@ def print_results(model, x, r, a, delta, d, i, l, Q, P,
     max_v_per_u   : maks antall v-noder per u (stage 3)
     max_w_per_v   : maks antall w-noder per v (stage 4)
     """
+
+    model = model_container.model
+    x = model_container.vars["x"]
+    r = model_container.vars["r"]
+    a = model_container.vars["a"]
+    delta = model_container.vars["delta"]
+    d = model_container.vars["d"]
+    i = model_container.vars["i"]
+    l = model_container.vars["l"]
+
+    Q = model_container.params["Q"]
+    P = model_container.params["P"]
+
+    U = model_container.sets["U"]
+    V = model_container.sets["V"]
+    W = model_container.sets["W"]
+    M_u = model_container.sets["M_u"]
+    M_v = model_container.sets["M_v"]
+    M_w = model_container.sets["M_w"]
+
 
     if model.Status != GRB.OPTIMAL:
         print("Model not solved to optimality. Status:", model.Status)
@@ -124,7 +142,7 @@ def print_results(model, x, r, a, delta, d, i, l, Q, P,
     print("--- Stage 2 (CM) – non-anticipative across u ---")
     for u in U_sorted:
         print(f"u = {u}:")
-        for m in M1:
+        for m in M_u:
             print(
                 f"  {m}: x={x[m,u].X:.3f}, "
                 f"a={a[m,u].X:.3f}, "
@@ -146,7 +164,7 @@ def print_results(model, x, r, a, delta, d, i, l, Q, P,
 
         print(f"\nParent CM node u = {u}:")
         for v in V_sample:
-            for m in M2:
+            for m in M_v:
                 print(
                     f"  {m} in {v}: "
                     f"x={x[m,v].X:.3f}, "
@@ -165,7 +183,7 @@ def print_results(model, x, r, a, delta, d, i, l, Q, P,
 
             print(f"\nParent scenario v = {v} (from u = {u}):")
             for w in W_sample:
-                for m in M3:
+                for m in M_w:
                     print(
                         f"  {m} in {w}: "
                         f"x={x[m,w].X:.3f}, "
@@ -186,70 +204,6 @@ def print_results(model, x, r, a, delta, d, i, l, Q, P,
     print("            END OF RESULTS")
     print("=============================================\n")
 
-
-
-
-def print_results_deterministic_policy(
-    model, x, a, r, delta, d, Q, U, V, W, M_u, M_v, M_w
-):
-    num_v = 3   # hvor mange v-scenarier å vise
-    num_w = 2   # hvor mange w per v
-
-    print("\n======================================")
-    print("     EXPECTED VALUE OF POLICY (EVP)")
-    print("======================================\n")
-
-    print(f"Objective value: {model.ObjVal:,.4f}\n")
-
-    # Stage 2
-    print("Stage 2 (CM) — deterministic policy:")
-    u0 = sorted(U)[0]
-    for m in M_u:
-        print(
-            f"  {m}: x={x[m,u0].X:.3f}, "
-            f"r={r[m,u0].X:.3f}, "
-            f"a={a[m,u0].X:.3f}, "
-            f"δ={int(delta[m,u0].X)}"
-        )
-
-    # Stage 3
-    print("\nStage 3 (DA) — representative v nodes:")
-    V_all_sorted = sorted(set().union(*V.values()))
-    V_subset = V_all_sorted[:num_v]
-
-    for v in V_subset:
-        for m in M_v:
-            print(
-                f"  v={v}, {m}: x={x[m,v].X:.3f}, "
-                f"r={r[m,v].X:.3f}, "
-                f"a={a[m,v].X:.3f}, "
-                f"δ={int(delta[m,v].X)}"
-            )
-
-    # Stage 4
-    print("\nStage 4 (EAM) — representative w children:")
-    for v in V_subset:
-        print(f"\n  Parent v={v}:")
-        W_subset = sorted(W[v])[:num_w]
-
-        for w in W_subset:
-            for m in M_w:
-                print(
-                    f"    w={w}, {m}: "
-                    f"x={x[m,w].X:.3f}, "
-                    f"a={a[m,w].X:.3f}, "
-                    f"r={r[m,w].X:.3f}, "
-                    f"δ={int(delta[m,w].X)}, "
-                    f"d={d[m,w].X:.3f}, "
-                    f"d_DA={d['DA', w].X:.3f}, "
-                    f"d_CM_u={d['CM_up', w].X:.3f}, "
-                    f"d_CM_d={d['CM_down', w].X:.3f}, "
-                    f"Q={Q[w]:.3f}"
-                )
-
-    print("\n======================================")
-    print("        END OF EVP DEBUG REPORT")
-    print("======================================\n")
 
 
 
