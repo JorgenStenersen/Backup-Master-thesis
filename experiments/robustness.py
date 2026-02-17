@@ -1,5 +1,5 @@
 
-from src.model import run_model
+from src.solvers.extensive_form import run_model
 import statistics
 
 

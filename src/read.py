@@ -221,31 +221,7 @@ def load_market_data(
                 f"(after index reset). Columns: {list(df.columns)}"
             )
             results[var_name] = None
-    # if (results.get("imbalance_forecasts") is not None and results.get("mfrr_eam_down_forecasts") is not None and results.get("mfrr_eam_up_forecasts") is not None):
-    #     imb = np.array(results["imbalance_forecasts"], dtype=float)
-    #     down = np.array(results["mfrr_eam_down_forecasts"], dtype=float)
-    #     up = np.array(results["mfrr_eam_up_forecasts"], dtype=float)
 
-    # if not (len(imb) == len(down) == len(up)):
-    #     print(
-    #         "⚠️ Cannot classify imbalance scenarios: "
-    #         "length mismatch between imbalance, eam_down and eam_up forecasts."
-    #     )
-    # else:
-    #     scenario_labels = []
-    #     for i, (v_imb, v_down, v_up) in enumerate(zip(imb, down, up)):
-    #         if np.isclose(v_imb, v_down, atol=1e-6):
-    #             scenario_labels.append("down")
-    #         elif np.isclose(v_imb, v_up, atol=1e-6):
-    #             scenario_labels.append("up")
-    #         else:
-    #             scenario_labels.append("unknown")
-    #             print(
-    #                 f"⚠️ Scenario {i}: imbalance value {v_imb} "
-    #                 f"does not match eam_down {v_down} or eam_up {v_up}"
-    #             )
-
-    #     results["imbalance_scenario_direction"] = scenario_labels
     return results
 
 
@@ -280,23 +256,3 @@ def load_parameters_from_parquet(time_str: str, scenarios: int, seed=None):
 
     return CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices
 
-
-# path = "data/mfrr_eam_up_forecasts.parquet"
-# mmo_data = load_mmo_data(path)
-# path = "data/mfrr_eam_down_forecasts.parquet"
-# mmo_data = load_mmo_data(path)
-# path = "data/imbalance_forecasts.parquet"
-# mmo_data = load_mmo_data(path)
-
-
-# results = load_market_data(datetime(2025, 10, 4, 10, 0, 0).strftime("%Y-%m-%d %H:%M:%S%z"), area="NO3", park="roan")
-
-
-# CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices = load_parameters_from_parquet(datetime(2025, 10, 4, 10, 0, 0).strftime("%Y-%m-%d %H:%M:%S%z"),1)
-# print("CM_up_sel:", CM_up_sel)
-# print("CM_down_sel:", CM_down_sel)
-# print("DA_sel:", DA_sel)
-# print("EAM_up_sel:", EAM_up_sel)
-# print("EAM_down_sel:", EAM_down_sel)
-# print("wind_speed_sel:", wind_speed_sel)
-# print("picked_scenario_indices:", picked_scenario_indices)
