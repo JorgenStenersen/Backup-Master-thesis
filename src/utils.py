@@ -177,7 +177,7 @@ def print_results(model, x, r, a, delta, d, i, l, Q, P,
                         f"d_CM_u={d['CM_up', w].X:.3f}, "
                         f"d_CM_d={d['CM_down', w].X:.3f}, "
                         f"l={l[w].X:.3f}, "
-                        f"Q={Q[w]:.3f}"
+                        f"Q={Q[w]:.3f}, "
                         f"P_imb={P[('imb', w)]:.3f}"
                     )
     print()
