@@ -1,4 +1,4 @@
-from src.model import build_model, run_model
+from src.solvers.extensive_form import run_model
 from experiments.robustness import run_robustness_experiment
 from experiments.benchmark import run_deterministic_benchmark
 
@@ -9,10 +9,8 @@ if __name__ == "__main__":
     verbose = True
     seed = 15
     number_of_runs = 20
-
-    model_container = build_model(time_str, n, seed=seed)
     
-    run_model(model_container, verbose=verbose)
+    run_model(time_str, n, seed=seed, verbose=verbose)
 
     # run_robustness_experiment(time_str, n, number_of_runs, 5)
     #run_deterministic_benchmark(time_str, n, seed)
