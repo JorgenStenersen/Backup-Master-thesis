@@ -43,14 +43,6 @@ def build_model(time_str: str, n:int, seed=None):
     idx_ms, idx_mw = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
     print("[INFO] Built index sets.")
 
-    model._sets = {
-        "U": U,
-        "V": V,
-        "W": W,
-        "M_u": M_u,
-        "M_v": M_v,
-        "M_w": M_w,
-    }
 
     # --- PARAMETERS ---
     
@@ -70,12 +62,6 @@ def build_model(time_str: str, n:int, seed=None):
 
     r_MAX_EAM_up   = 0  # maks pris for EAM up
     r_MAX_EAM_down = 0    # maks pris for EAM down
-
-    model._params = {
-        "P": P,
-        "Q": Q,
-        "C": C,
-    }
 
 
     # --- VARIABLES ---
@@ -97,18 +83,6 @@ def build_model(time_str: str, n:int, seed=None):
     l = model.addVars([w for w in W_all], lb=0, name="l")
     # Imbalance. Differanse mellom faktisk produksjon og produksjonsforpliktelse
     i = model.addVars([w for w in W_all], lb=0, name="i")
-
-    #model._vars = {
-    #    "x": x,
-    #    "r": r,
-    #    "delta": delta,
-    #    "a": a,
-    #    "d": d,
-    #    "b": b,
-    #    "l": l,
-    #    "i": i
-    #}
-
 
 
     # --- OBJECTIVE FUNCTION ---s
@@ -329,10 +303,6 @@ def build_model(time_str: str, n:int, seed=None):
             )
 
 
-
-
-
-
     # Minimum bid quantity constraints for mFRR markets (CM and EAM)
     for (m, s) in b.keys():
         # Hvis b[m,s] = 1  ->  x[m,s] ≥ MIN_Q
@@ -348,28 +318,6 @@ def build_model(time_str: str, n:int, seed=None):
             name=f"mFRR_min_ub[{m},{s}]"
         )
 
-
-    """
-    # Constraining bid price in the EAM markets
-    #for w in W_all:
-    #    model.addConstr(
-    #        r["EAM_up", w] <= r_MAX_EAM_up,
-    #        name=f"max_price_EAMup_{w}"
-    #    )
-    #    model.addConstr(
-    #        r["EAM_down", w] <= r_MAX_EAM_down,
-    #        name=f"max_price_EAMdown_{w}"
-    #    )
-    for w in W_all:
-        model.addConstr(
-            r["EAM_up", w] <= r_MAX_EAM_up,
-            name=f"max_price_EAMup_{w}"
-        )
-        model.addConstr(
-            r["EAM_down", w] <= r_MAX_EAM_down,
-            name=f"max_price_EAMdown_{w}"
-        )
-    """
 
     # Constrain bid price within price interval
     for (m, s) in idx_ms:
@@ -408,65 +356,6 @@ def build_model(time_str: str, n:int, seed=None):
     )
 
     return model_container
-
-
-
-def run_model(model_container, verbose=True):
-
-    model = model_container.model
-    x = model_container.vars["x"]
-    r = model_container.vars["r"]
-    a = model_container.vars["a"]
-    delta = model_container.vars["delta"]
-    d = model_container.vars["d"]
-    i = model_container.vars["i"]
-    l = model_container.vars["l"]
-
-    Q = model_container.params["Q"]
-    P = model_container.params["P"]
-
-    U = model_container.sets["U"]
-    V = model_container.sets["V"]
-    W = model_container.sets["W"]
-    M_u = model_container.sets["M_u"]
-    M_v = model_container.sets["M_v"]
-    M_w = model_container.sets["M_w"]
-
-    print("Added all constraints, starting to optimize model...")
-    # --- OPTIMIZE MODEL ---
-    
-    model.optimize()
-    
-    runtime = model.Runtime
-    print(f"Model optimized in {runtime:.2f} seconds.")
-
-
-    # --- PRINT RESULTS ---
-    if verbose:
-        utils.print_results(model, x, r, a, delta, d, i, l, Q, P, U, V, W, M_u, M_v, M_w)
-
-    output_dict = {
-        "model": model,
-        "x": x,
-        "r": r,
-        "a": a,
-        "delta": delta,
-        "d": d,
-        "i": i,
-        "l": l,
-        "P": P,
-        "Q": Q,
-        "U": U,
-        "V": V,
-        "W": W,
-        "M_u": M_u,
-        "M_v": M_v,
-        "M_w": M_w,
-        "objective": model.ObjVal,   # <-- NEW
-        "runtime": runtime          # <-- NEW
-    }
-
-    return output_dict
 
 
 
