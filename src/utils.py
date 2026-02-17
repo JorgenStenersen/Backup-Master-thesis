@@ -191,10 +191,10 @@ def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
                         f"r={r[m,w].X:.3f}, "
                         f"δ={int(round(delta[m,w].X))}, "
                         f"d={d[m,w].X:.3f}, "
-                        f"i={i[w].X:.3f}, "
                         f"d_CM_u={d['CM_up', w].X:.3f}, "
                         f"d_CM_d={d['CM_down', w].X:.3f}, "
                         f"l={l[w].X:.3f}, "
+                        f"i={i[w].X:.3f}, "
                         f"Q={Q[w]:.3f}, "
                         f"P_imb={P[('imb', w)]:.3f}"
                     )
