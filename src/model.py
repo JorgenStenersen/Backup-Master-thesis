@@ -65,11 +65,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
 
 
     # --- OBJECTIVE FUNCTION ---
-
-    if mode == "extensive":
-        obj = _build_objective_extensive(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i)
-    elif mode == "scenario":
-        obj = _build_objective_scenario()
+    obj = _build_objective(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i, mode)
 
     model.setObjective(obj, GRB.MAXIMIZE)
 
@@ -134,14 +130,14 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
 
 
 
-def _build_objective_extensive(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i):
+def _build_objective(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i, mode):
     nodes = scenario_tree["nodes"]
     obj = gp.LinExpr()
 
     # extensive: loop over all included U, then V[u], then W[v]
     # scenario: U/V/W er allerede trimmed til én path, så samme loop fungerer, men vi dropper sannsynlighetsvekting (eller setter dem = 1)
     for u in U:
-        pi_u = nodes[u].cond_prob  # π_u
+        pi_u = nodes[u].cond_prob if mode == "extensive" else 1.0 # π_u
 
         # Innerste ledd for gitt u
         term_u = gp.quicksum(
@@ -150,7 +146,7 @@ def _build_objective_extensive(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d
 
         # Stage 3
         for v in V[u]:
-            pi_v_u = nodes[v].cond_prob # π_{v|u}
+            pi_v_u = nodes[v].cond_prob if mode == "extensive" else 1.0 # π_{v|u}
 
             term_v = gp.quicksum(
                 P[ (m, v) ] * a[m, v] for m in M_v
@@ -158,7 +154,7 @@ def _build_objective_extensive(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d
 
             # Stage 4
             for w in W[v]:
-                pi_w_v = nodes[w].cond_prob  # π_{w|v}
+                pi_w_v = nodes[w].cond_prob if mode == "extensive" else 1.0 # π_{w|v}
 
                 revenue_w = gp.quicksum(
                     P[ (m, w) ] * a[m, w] for m in M_w
@@ -177,13 +173,6 @@ def _build_objective_extensive(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d
         obj += pi_u * term_u
 
     return obj
-
-
-def _build_objective_scenario():
-
-    return
-
-
 
 
 def _add_production_constraints(model, l, Q, W_all):
