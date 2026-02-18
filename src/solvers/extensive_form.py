@@ -1,12 +1,15 @@
 import src.utils as utils
-from src.model import build_model
+from src.model import build_model, initialize_run
 
 
 def run_model(time_str, n, seed=None, verbose=True):
 
-    model_container = build_model(time_str, n, seed=seed)
+    # Bygg treet og hent globale grenseverdier
+    full_scenario_tree, global_bounds = initialize_run(time_str, n, seed=seed)
 
-    print("Starting to optimize model...")
+    # Bygg modell
+    model_container = build_model(full_scenario_tree, global_bounds)
+
     # --- OPTIMIZE MODEL ---
     model_container.model.optimize()
     
@@ -17,3 +20,9 @@ def run_model(time_str, n, seed=None, verbose=True):
     # --- PRINT RESULTS ---
     if verbose:
         utils.print_results(model_container)
+
+
+
+
+
+
