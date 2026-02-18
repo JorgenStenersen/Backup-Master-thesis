@@ -1,39 +1,25 @@
-import itertools
-from xml.parsers.expat import model
 import gurobipy as gp
 from gurobipy import GRB
-import numpy as np
 import src.tree as tree
 import src.utils as utils
-import json
 from src.model_container import ModelContainer
 
 
-def build_model(time_str: str, n:int, seed=None):
 
+def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree is either the full tree for extensive form, or a single path for scenario form
+
+    if mode not in ["extensive", "scenario"]:
+        raise ValueError("Invalid mode. Choose 'extensive' or 'scenario'.")
+    
     model = gp.Model()
 
     # --- SETS ---
-    I = [1, 2, 3, 4]   # stages
 
-    M_u = ["CM_up", "CM_down"]
-    M_v = ["DA"]
-    M_w = ["EAM_up", "EAM_down"]
-
-    M  = M_u + M_v + M_w
-
-
-    # Bygg treet
-    scenario_tree = tree.build_scenario_tree(time_str, n, seed)
-    print("[INFO] Built scenario tree.")
-    # Lagre treet i modellen for tilgang
-    model._scenario_tree = scenario_tree
-    print("[INFO] Stored scenario tree in model.")
-
+    # Sets of market products
+    M_u, M_v, M_w, M = get_market_products()
 
     # Bygg sett fra treet
     U, V, W, S = tree.build_sets_from_tree(scenario_tree)
-    print("[INFO] Built sets from scenario tree.")
 
     # flate mengder for v- og w-noder:
     V_all = set().union(*V.values())
@@ -41,8 +27,6 @@ def build_model(time_str: str, n:int, seed=None):
 
     # bygg indeksmengder (m,s)
     idx_ms, idx_mw = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
-    print("[INFO] Built index sets.")
-
 
     # --- PARAMETERS ---
     
@@ -50,18 +34,12 @@ def build_model(time_str: str, n:int, seed=None):
     Q = utils.build_production_capacity(scenario_tree)
     C = utils.build_cost_parameters(U, V, W, P)
 
-    Pmax = {m: max(P[m, s] for s in S if (m, s) in idx_ms) for m in M}
 
-
-    BIGM_1 = max(Pmax.values())
-    BIGM_2 = max(Q.values())  # maksimal produksjonskapasitet
-
-    epsilon = 1e-3
-
+    Pmax_per_market = global_bounds["Pmax_per_market"] # Høyeste pris for hvert produkt
+    BIGM_1 = global_bounds["Pmax"] # maksimal pris i inputdata
+    BIGM_2 = global_bounds["Qmax"]  # maksimal produksjonskapasitet
+    epsilon = 1e-3  # liten verdi for å sikre korrekt aktivering av delta
     x_mFRR_min = 10  # minimum budstørrelse i mFRR-markedet
-
-    r_MAX_EAM_up   = 0  # maks pris for EAM up
-    r_MAX_EAM_down = 0    # maks pris for EAM down
 
 
     # --- VARIABLES ---
@@ -85,28 +63,90 @@ def build_model(time_str: str, n:int, seed=None):
     i = model.addVars([w for w in W_all], lb=0, name="i")
 
 
-    # --- OBJECTIVE FUNCTION ---s
+
+    # --- OBJECTIVE FUNCTION ---
+    obj = _build_objective(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i, mode)
+
+    model.setObjective(obj, GRB.MAXIMIZE)
 
 
-    nodes = scenario_tree["nodes"]  # fra build_scenario_tree
-    # U, V, W: fra build_sets_from_tree(tree)
-    #   U: set of u-noder
-    #   V: dict u -> set of v-noder
-    #   W: dict v -> set of w-noder
 
+    # --- PRODUCTION CONSTRAINTS ---
+    _add_production_constraints(model, l, Q, W_all)
+
+    # --- ACTIVATION CONSTRAINTS ---
+    _add_activation_constraints(model, idx_ms, x, a, delta, r, P, BIGM_1, BIGM_2, epsilon)
+
+    # --- MUTUAL EXCLUSION CONSTRAINTS FOR EAM ---
+    _add_mutual_exclusion_eam(model, delta, W_all)
+
+    # --- NON-ANTICIPATIVITY CONSTRAINTS ---
+    if mode == "extensive":
+        _add_nonanticipativity_constraints(model, U, V, W, V_all, M_u, M_v, M_w, x, r)
+
+    # --- MARKET CONSTRAINTS ---
+    _add_market_constraints(model, U, V, V_all, W, W_all, M_u, M_w, x, a, d, l, i, delta, BIGM_2)
+
+    # --- MINIMUM BID CONSTRAINTS FOR mFRR MARKETS ---
+    _add_min_bid_constraints(model, b, x, x_mFRR_min, BIGM_2)
+
+    # --- PRICE BOUNDS CONSTRAINTS ---
+    _add_price_bounds(model, idx_ms, r, Pmax_per_market)
+
+
+
+
+    # --- CREATE MODEL CONTAINER ---
+    model_container = ModelContainer(
+        model=model,
+        vars={
+            "x": x,
+            "r": r,
+            "delta": delta,
+            "a": a,
+            "d": d,
+            "b": b,
+            "l": l,
+            "i": i
+        },
+        params={
+            "P": P,
+            "Q": Q,
+            "C": C
+        },
+        sets={
+            "U": U,
+            "V": V,
+            "W": W,
+            "M_u": M_u,
+            "M_v": M_v,
+            "M_w": M_w
+        }
+    )
+
+    return model_container
+
+
+
+
+
+def _build_objective(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i, mode):
+    nodes = scenario_tree["nodes"]
     obj = gp.LinExpr()
 
+    # extensive: loop over all included U, then V[u], then W[v]
+    # scenario: U/V/W er allerede trimmed til én path, så samme loop fungerer, men vi dropper sannsynlighetsvekting (eller setter dem = 1)
     for u in U:
-        pi_u = nodes[u].cond_prob   # π_u
+        pi_u = nodes[u].cond_prob if mode == "extensive" else 1.0 # π_u
 
-        # Inneste ledd for gitt u
+        # Innerste ledd for gitt u
         term_u = gp.quicksum(
             P[ (m, u) ] * a[m, u] for m in M_u
         )
 
         # Stage 3
         for v in V[u]:
-            pi_v_u = nodes[v].cond_prob   # π_{v|u}
+            pi_v_u = nodes[v].cond_prob if mode == "extensive" else 1.0 # π_{v|u}
 
             term_v = gp.quicksum(
                 P[ (m, v) ] * a[m, v] for m in M_v
@@ -114,7 +154,7 @@ def build_model(time_str: str, n:int, seed=None):
 
             # Stage 4
             for w in W[v]:
-                pi_w_v = nodes[w].cond_prob   # π_{w|v}
+                pi_w_v = nodes[w].cond_prob if mode == "extensive" else 1.0 # π_{w|v}
 
                 revenue_w = gp.quicksum(
                     P[ (m, w) ] * a[m, w] for m in M_w
@@ -132,22 +172,19 @@ def build_model(time_str: str, n:int, seed=None):
 
         obj += pi_u * term_u
 
-    model.setObjective(obj, GRB.MAXIMIZE)
+    return obj
 
 
-    # --- PRODUCTION CONSTRAINTS ---
-
+def _add_production_constraints(model, l, Q, W_all):
+    # l_w <= Q_w
     for w in W_all:
-        # 1) l_w <= Q_w
         model.addConstr(
-            l[w] <= Q[w],
+            l[w] <= Q[w], 
             name=f"prod_cap[{w}]"
         )
 
 
-    # --- ACTIVATION CONSTRAINTS ---
-
-
+def _add_activation_constraints(model, idx_ms, x, a, delta, r, P, BIGM_1, BIGM_2, epsilon):
     # Aktiveringsgrenser (for alle gyldige (m,s))
     for (m, s) in idx_ms:
         # 1) a_ms <= x_ms
@@ -186,6 +223,7 @@ def build_model(time_str: str, n:int, seed=None):
 
 
 
+def _add_mutual_exclusion_eam(model, delta, W_all):
     for w in W_all:
         # Ikke aktivert både opp- og nedregulering for EAM i samme scenario
         model.addConstr(
@@ -194,10 +232,8 @@ def build_model(time_str: str, n:int, seed=None):
         )
 
 
-
-    # --- NON-ANTICIPATIVITY CONSTRAINTS ---
-
-    # Stage 2 non-anticipativity
+def _add_nonanticipativity_constraints(model, U, V, W, V_all, M_u, M_v, M_w, x, r):
+        # Stage 2 non-anticipativity
     u0 = next(iter(U))             # referansenode
     for m in M_u:
         for u in U:
@@ -251,23 +287,18 @@ def build_model(time_str: str, n:int, seed=None):
                 )
 
 
-    # --- MARKET CONSTRAINTS ---
-
-
+def _add_market_constraints(model, U, V, V_all, W, W_all, M_u, M_w, x, a, d, l, i, delta, BIGM_2):
     # any up or down regulation committed in market 1 must be followed by at least the same amount of up or down bidding in stage 3
-    # Bygg W(u) fra V(u) og W(v). W(u) er mengden av alle w-noder som følger u
-    W_u = {u: set().union(*(W[v] for v in V[u])) for u in U}
-
-
     # Forpliktelse i CM må følges opp i EAM, eller gi straff for brudd på CM
     for u in U:
-        for w in W_u[u]:
-            model.addConstr(
-                d["CM_up", w] >= a["CM_up", u] - x["EAM_up", w]
-            )
-            model.addConstr(
-                d["CM_down", w] >= a["CM_down", u] - x["EAM_down", w],  
-            )
+        for v in V[u]:
+            for w in W[v]:
+                model.addConstr(
+                    d["CM_up", w] >= a["CM_up", u] - x["EAM_up", w]
+                )
+                model.addConstr(
+                    d["CM_down", w] >= a["CM_down", u] - x["EAM_down", w],  
+                )
 
     
     # Balansere produksjon og produksjonsforpliktelse
@@ -302,7 +333,7 @@ def build_model(time_str: str, n:int, seed=None):
                 d["EAM_down", w] <= a["EAM_down", w]
             )
 
-
+def _add_min_bid_constraints(model, b, x, x_mFRR_min, BIGM_2):
     # Minimum bid quantity constraints for mFRR markets (CM and EAM)
     for (m, s) in b.keys():
         # Hvis b[m,s] = 1  ->  x[m,s] ≥ MIN_Q
@@ -318,44 +349,53 @@ def build_model(time_str: str, n:int, seed=None):
             name=f"mFRR_min_ub[{m},{s}]"
         )
 
-
+def _add_price_bounds(model, idx_ms, r, Pmax_per_market):
     # Constrain bid price within price interval
     for (m, s) in idx_ms:
-        if Pmax[m] >= 0:
+        if Pmax_per_market[m] >= 0:
             model.addConstr(
-                r[m, s] <= Pmax[m]
+                r[m, s] <= Pmax_per_market[m]
             )
 
 
-    # --- CREATE MODEL CONTAINER ---
-    model_container = ModelContainer(
-        model=model,
-        vars={
-            "x": x,
-            "r": r,
-            "delta": delta,
-            "a": a,
-            "d": d,
-            "b": b,
-            "l": l,
-            "i": i
-        },
-        params={
-            "P": P,
-            "Q": Q,
-            "C": C
-        },
-        sets={
-            "U": U,
-            "V": V,
-            "W": W,
-            "M_u": M_u,
-            "M_v": M_v,
-            "M_w": M_w
-        }
-    )
-
-    return model_container
 
 
 
+
+
+def initialize_run(time_str, n, seed=None):
+    # Bygg treet
+    full_scenario_tree = tree.build_scenario_tree(time_str, n, seed)
+
+    # Finn verdier for Big M
+    P = utils.build_price_parameter(full_scenario_tree)
+    Q = utils.build_production_capacity(full_scenario_tree)
+    Pmax = max(P.values())
+    Qmax = max(Q.values())
+
+    # finn max-pris for hvert marked
+    M_u, M_v, M_w, M = get_market_products()
+
+    U, V, W, S = tree.build_sets_from_tree(full_scenario_tree)
+
+    V_all = set().union(*V.values())
+    W_all = set().union(*W.values())
+
+    idx_ms, idx_mw = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
+
+    Pmax_per_market = {m: max(P[m, s] for s in S if (m, s) in idx_ms) for m in M} # Høyeste pris for hvert produkt
+
+    # Dictionary med alle globale grenseverdier som trengs i modellen
+    global_bounds = {"Pmax_per_market": Pmax_per_market, "Pmax": Pmax, "Qmax": Qmax}
+
+    return full_scenario_tree, global_bounds
+
+
+
+def get_market_products():
+    M_u = ["CM_up", "CM_down"]
+    M_v = ["DA"]
+    M_w = ["EAM_up", "EAM_down"]
+    M = M_u + M_v + M_w
+
+    return M_u, M_v, M_w, M
