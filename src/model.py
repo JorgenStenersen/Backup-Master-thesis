@@ -19,11 +19,12 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     M_u, M_v, M_w, M = get_market_products()
 
     # Bygg sett fra treet
-    U, V, W, S = tree.build_sets_from_tree(scenario_tree)
+    U, V, W, S, L = tree.build_sets_from_tree(scenario_tree)
 
     # flate mengder for v- og w-noder:
     V_all = set().union(*V.values())
     W_all = set().union(*W.values())
+    L_all = set().union(*L.values())
 
     # bygg indeksmengder (m,s)
     idx_ms, idx_mw = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
@@ -58,21 +59,21 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     b = model.addVars([(m, s) for (m, s) in idx_ms if m in (M_u + M_w)], vtype=GRB.BINARY, name="b")
     
     # Mengde fysisk produksjon
-    l = model.addVars([w for w in W_all], lb=0, name="l")
+    q = model.addVars([w for w in W_all], lb=0, name="q")
     # Imbalance. Differanse mellom faktisk produksjon og produksjonsforpliktelse
-    i = model.addVars([w for w in W_all], lb=0, name="i")
+    i = model.addVars([l for l in L_all], lb=0, name="i")
 
 
 
     # --- OBJECTIVE FUNCTION ---
-    obj = _build_objective(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i, mode)
+    obj = _build_objective(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i, mode)
 
     model.setObjective(obj, GRB.MAXIMIZE)
 
 
 
     # --- PRODUCTION CONSTRAINTS ---
-    _add_production_constraints(model, l, Q, W_all)
+    _add_production_constraints(model, q, Q, W_all)
 
     # --- ACTIVATION CONSTRAINTS ---
     _add_activation_constraints(model, idx_ms, x, a, delta, r, P, BIGM_1, BIGM_2, epsilon)
@@ -85,7 +86,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
         _add_nonanticipativity_constraints(model, U, V, W, V_all, M_u, M_v, M_w, x, r)
 
     # --- MARKET CONSTRAINTS ---
-    _add_market_constraints(model, U, V, V_all, W, W_all, M_u, M_w, x, a, d, l, i, delta, BIGM_2)
+    _add_market_constraints(model, U, V, W, L, V_all, x, a, d, q, i, delta, BIGM_2)
 
     # --- MINIMUM BID CONSTRAINTS FOR mFRR MARKETS ---
     _add_min_bid_constraints(model, b, x, x_mFRR_min, BIGM_2)
@@ -106,7 +107,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
             "a": a,
             "d": d,
             "b": b,
-            "l": l,
+            "q": q,
             "i": i
         },
         params={
@@ -118,6 +119,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
             "U": U,
             "V": V,
             "W": W,
+            "L": L,
             "M_u": M_u,
             "M_v": M_v,
             "M_w": M_w
@@ -130,7 +132,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
 
 
 
-def _build_objective(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i, mode):
+def _build_objective(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i, mode):
     nodes = scenario_tree["nodes"]
     obj = gp.LinExpr()
 
@@ -159,14 +161,23 @@ def _build_objective(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i, mode)
                 revenue_w = gp.quicksum(
                     P[ (m, w) ] * a[m, w] for m in M_w
                 )
-
-                imbalance_w = P[ ("imb", w) ] * i[w]
                 
                 penalty_w = gp.quicksum(
                     C[ (m, w) ] * d[m, w] for m in M_u + M_w
                 )
 
-                term_v += pi_w_v * (revenue_w + imbalance_w - penalty_w)
+                term_w = revenue_w - penalty_w
+
+                # Stage 5: Imbalance settlement
+                for l in L[w]:
+                    pi_l_w = nodes[l].cond_prob if mode == "extensive" else 1.0 # π_{l|w}
+
+                    imbalance = P[ ("imb", l) ] * i[l]
+
+                
+                    term_w += pi_l_w * imbalance
+                    
+                term_v += pi_w_v * term_w
 
             term_u += pi_v_u * term_v
 
@@ -175,14 +186,13 @@ def _build_objective(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i, mode)
     return obj
 
 
-def _add_production_constraints(model, l, Q, W_all):
-    # l_w <= Q_w
+def _add_production_constraints(model, q, Q, W_all):
+    # q_w <= Q_w
     for w in W_all:
         model.addConstr(
-            l[w] <= Q[w], 
+            q[w] <= Q[w], 
             name=f"prod_cap[{w}]"
         )
-
 
 def _add_activation_constraints(model, idx_ms, x, a, delta, r, P, BIGM_1, BIGM_2, epsilon):
     # Aktiveringsgrenser (for alle gyldige (m,s))
@@ -287,7 +297,7 @@ def _add_nonanticipativity_constraints(model, U, V, W, V_all, M_u, M_v, M_w, x, 
                 )
 
 
-def _add_market_constraints(model, U, V, V_all, W, W_all, M_u, M_w, x, a, d, l, i, delta, BIGM_2):
+def _add_market_constraints(model, U, V, W, L, V_all, x, a, d, q, i, delta, BIGM_2):
     # any up or down regulation committed in market 1 must be followed by at least the same amount of up or down bidding in stage 3
     # Forpliktelse i CM må følges opp i EAM, eller gi straff for brudd på CM
     for u in U:
@@ -304,30 +314,35 @@ def _add_market_constraints(model, U, V, V_all, W, W_all, M_u, M_w, x, a, d, l, 
     # Balansere produksjon og produksjonsforpliktelse
     for v in V_all:
         for w in W[v]:
-            # Imbalance definisjon
-            model.addConstr(
-                i[w] == l[w] - a["DA", v] - a["EAM_up", w] + a["EAM_down", w]
-            )
+            for l in L[w]:
+                # Imbalance definisjon
+                model.addConstr(
+                    i[l] == q[w] - a["DA", v] - a["EAM_up", w] + a["EAM_down", w]
+                )
     
     # Avvik i EAM-markedet
     for v in V_all:
         for w in W[v]:
-            # EAM up
+
             model.addConstr(
-                d["EAM_up", w] >= a["DA", v] + a["EAM_up", w] - l[w] - BIGM_2*(1 - delta["EAM_up", w])
+                d["EAM_up", w] >= a["DA", v] + a["EAM_up", w] - q[w] - BIGM_2*(1 - delta["EAM_up", w])
             )
+            
             model.addConstr(
                 d["EAM_up", w] <= BIGM_2 * delta["EAM_up", w]
             )
             model.addConstr(
                 d["EAM_up", w] <= a["EAM_up", w]
             )
+
+
             # EAM down
             model.addConstr(
-                d["EAM_down", w] >= a["DA", v] + a["EAM_down", w] - l[w] - BIGM_2*(1 - delta["EAM_down", w])
+                d["EAM_down", w] >= a["DA", v] + a["EAM_down", w] - q[w] - BIGM_2*(1 - delta["EAM_down", w])
             )
+            
             model.addConstr(
-                d["EAM_down", w] <= BIGM_2 * delta["EAM_down", w]
+                    d["EAM_down", w] <= BIGM_2 * delta["EAM_down", w]
             )
             model.addConstr(
                 d["EAM_down", w] <= a["EAM_down", w]
@@ -376,7 +391,7 @@ def initialize_run(time_str, n, seed=None):
     # finn max-pris for hvert marked
     M_u, M_v, M_w, M = get_market_products()
 
-    U, V, W, S = tree.build_sets_from_tree(full_scenario_tree)
+    U, V, W, S, L = tree.build_sets_from_tree(full_scenario_tree)
 
     V_all = set().union(*V.values())
     W_all = set().union(*W.values())

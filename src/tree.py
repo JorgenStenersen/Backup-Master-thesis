@@ -27,7 +27,8 @@ def build_scenario_tree(time_str: str, n:int, seed=None) -> Dict[str, Any]:
       - Stage 1: root (før alt er kjent)
       - Stage 2: CM-priser (CM_up, CM_down)
       - Stage 3: DA-pris
-      - Stage 4: EAM-priser + vind + imbalance (EAM_up, EAM_down, wind_speed, imb)
+      - Stage 4: EAM-priser + vind
+      - Stage 5: imbalance pris (imb)
 
     Input kan være lister, numpy-arrays, etc.
     Antall alternativer i hver liste kan være vilkårlig.
@@ -70,40 +71,63 @@ def build_scenario_tree(time_str: str, n:int, seed=None) -> Dict[str, Any]:
             stage3_nodes.append(name)
     print("[INFO] Added stage 3 DA nodes.")
 
-    # --- Stage 4: EAM + vind + imbalance (alle kombinasjoner) ---
+    # --- Stage 4: EAM + vind (alle kombinasjoner) ---
     n_EAM_up = len(EAM_up)
     n_EAM_down = len(EAM_down)
     n_wind = len(wind_speed)
-    n_imb = len(imb)
     
-    leaf_cond_prob = 1.0 / (n_EAM_up * n_EAM_down * n_wind * n_imb)
+    stage4_cond_prob = 1.0 / (n_EAM_up * n_EAM_down * n_wind)
 
-    leaf_nodes: List[str] = []
+    stage4_nodes: List[str] = []
     for parent_v in stage3_nodes:
-        for p_eup, p_edown, w, i in product(EAM_up, EAM_down, wind_speed, imb):
+        for p_eup, p_edown, w in product(EAM_up, EAM_down, wind_speed):
 
-            # For imbalance, vi antar at den er enten EAM_up eller EAM_down, med 50% sannsynlighet hver
-            if i == "up":
-                p_imb = p_eup
-            elif i == "down":
-                p_imb = p_edown
-
-            name = f"w{len(leaf_nodes) + 1}"
+            name = f"w{len(stage4_nodes) + 1}"
             info = {
                 "EAM_up": p_eup,
                 "EAM_down": p_edown,
-                "wind_speed": w,
-                "imb": p_imb
+                "wind_speed": w
             }
             add_node(
                 name,
                 stage=4,
                 parent=parent_v,
                 info=info,
-                cond_prob=leaf_cond_prob,
+                cond_prob=stage4_cond_prob,
+            )
+            stage4_nodes.append(name)
+    print("[INFO] Added stage 4 EAM + wind nodes.")
+
+    # --- Stage 5: imbalance pris ---
+    n_imb = len(imb)
+    
+    stage5_cond_prob = 1.0 / n_imb
+
+    leaf_nodes: List[str] = []
+    for parent_w in stage4_nodes:
+        for i in imb:
+
+            # Vi antar at imbalance prisen er enten EAM_up eller EAM_down, med 50% sannsynlighet hver
+            if i == "up":
+                p_imb = p_eup
+            elif i == "down":
+                p_imb = p_edown
+
+            name = f"l{len(leaf_nodes) + 1}"
+            info = {
+                "imb": p_imb
+            }
+            add_node(
+                name,
+                stage=5,
+                parent=parent_w,
+                info=info,
+                cond_prob=stage5_cond_prob,
             )
             leaf_nodes.append(name)
-    print("[INFO] Added stage 4 EAM + wind + imbalance nodes.")
+
+    print("[INFO] Added stage 5 imbalance nodes.")
+
     
     # --- Bygg scenarier (én per løvnode) ---
     scenarios = []
@@ -172,7 +196,10 @@ def build_sets_from_tree(tree):
     W_all = set().union(*W.values()) if W else set()
     S = U.union(V_all).union(W_all)
 
-    return U, V, W, S
+    # --- L(w): scenarier i stage 5 etter w ---
+    L = {w: set(children.get(w, [])) for w in W_all}
+
+    return U, V, W, S, L
 
 
 def build_index_sets(U, V_all, W_all, M_u, M_v, M_w, M):
