@@ -108,10 +108,11 @@ def build_scenario_tree(time_str: str, n:int, seed=None) -> Dict[str, Any]:
         for i in imb:
 
             # Vi antar at imbalance prisen er enten EAM_up eller EAM_down, med 50% sannsynlighet hver
+            parent_node = nodes[parent_w]
             if i == "up":
-                p_imb = p_eup
+                p_imb = parent_node.info["EAM_up"]
             elif i == "down":
-                p_imb = p_edown
+                p_imb = parent_node.info["EAM_down"]
 
             name = f"l{len(leaf_nodes) + 1}"
             info = {
