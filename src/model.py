@@ -48,7 +48,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     # x_ms: bid quantity
     x = model.addVars(idx_ms, lb=0, vtype=GRB.INTEGER, name="x")
     # r_ms: bid price
-    r = model.addVars(idx_ms, lb=0, name="r")
+    r = model.addVars(idx_ms, lb=-GRB.INFINITY, name="r")
     # δ_ms: 1 hvis budet aktiveres
     delta = model.addVars(idx_ms, vtype=GRB.BINARY, name="delta")
     # a_ms: aktivert kvantum
