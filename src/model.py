@@ -61,7 +61,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     # Mengde fysisk produksjon
     q = model.addVars([w for w in W_all], lb=0, name="q")
     # Imbalance. Differanse mellom faktisk produksjon og produksjonsforpliktelse
-    i = model.addVars([l for l in L_all], lb=0, name="i")
+    i = model.addVars([w for w in W_all], lb=0, name="i")
 
 
 
@@ -172,7 +172,7 @@ def _build_objective(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i, mo
                 for l in L[w]:
                     pi_l_w = nodes[l].cond_prob if mode == "extensive" else 1.0 # π_{l|w}
 
-                    imbalance = P[ ("imb", l) ] * i[l]
+                    imbalance = P[ ("imb", l) ] * i[w]
 
                 
                     term_w += pi_l_w * imbalance
@@ -314,16 +314,16 @@ def _add_market_constraints(model, U, V, W, L, V_all, x, a, d, q, i, delta, BIGM
     # Balansere produksjon og produksjonsforpliktelse
     for v in V_all:
         for w in W[v]:
-            for l in L[w]:
-                # Imbalance definisjon
-                model.addConstr(
-                    i[l] == q[w] - a["DA", v] - a["EAM_up", w] + a["EAM_down", w]
-                )
+            # Imbalance definisjon
+            model.addConstr(
+                i[w] == q[w] - a["DA", v] - a["EAM_up", w] + a["EAM_down", w]
+            )
     
     # Avvik i EAM-markedet
     for v in V_all:
         for w in W[v]:
-
+            
+            # EAM up
             model.addConstr(
                 d["EAM_up", w] >= a["DA", v] + a["EAM_up", w] - q[w] - BIGM_2*(1 - delta["EAM_up", w])
             )

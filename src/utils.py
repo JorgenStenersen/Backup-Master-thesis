@@ -202,7 +202,8 @@ def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
                         f"d_CM_u={d['CM_up', w].X:.3f}, "
                         f"d_CM_d={d['CM_down', w].X:.3f}, "
                         f"Q={Q[w]:.3f}, "
-                        f"q={q[w].X:.3f}"
+                        f"q={q[w].X:.3f}, "
+                        f"i={i[w].X:.3f}"
                     )
     print()
 
@@ -217,7 +218,6 @@ def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
                 print(f"\nParent scenario W = {w} (from u = {u}, v = {v}):")
                 for l in L_sample:
                     print(
-                        f"i={i[l].X:.3f}, "
                         f"P_imb={P[('imb', l)]:.3f}"
                     )
 
