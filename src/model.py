@@ -6,10 +6,10 @@ from src.model_container import ModelContainer
 
 
 
-def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree is either the full tree for extensive form, or a single path for scenario form
+def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree is either the full tree for extensive form, or a subtree for progressive hedging
 
-    if mode not in ["extensive", "scenario"]:
-        raise ValueError("Invalid mode. Choose 'extensive' or 'scenario'.")
+    if mode not in ["extensive", "progressive_hedging"]:
+        raise ValueError("Invalid mode. Choose 'extensive' or 'progressive_hedging'.")
     
     model = gp.Model()
 
@@ -66,11 +66,12 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
 
 
     # --- OBJECTIVE FUNCTION ---
-    obj = _build_objective(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i, mode)
+    if mode == "extensive":
+        obj = _build_objective_extensive_form(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i)
+    elif mode == "progressive_hedging":
+        obj = _build_objective_progressive_hedging(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i)
 
     model.setObjective(obj, GRB.MAXIMIZE)
-
-
 
     # --- PRODUCTION CONSTRAINTS ---
     _add_production_constraints(model, q, Q, W_all)
@@ -82,8 +83,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     _add_mutual_exclusion_eam(model, delta, W_all)
 
     # --- NON-ANTICIPATIVITY CONSTRAINTS ---
-    if mode == "extensive":
-        _add_nonanticipativity_constraints(model, U, V, W, V_all, M_u, M_v, M_w, x, r)
+    _add_nonanticipativity_constraints(model, U, V, W, V_all, M_u, M_v, M_w, x, r)
 
     # --- MARKET CONSTRAINTS ---
     _add_market_constraints(model, U, V, W, L, V_all, x, a, d, q, i, delta, BIGM_2)
@@ -132,14 +132,14 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
 
 
 
-def _build_objective(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i, mode):
+def _build_objective_extensive_form(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i):
     nodes = scenario_tree["nodes"]
     obj = gp.LinExpr()
 
     # extensive: loop over all included U, then V[u], then W[v]
     # scenario: U/V/W er allerede trimmed til én path, så samme loop fungerer, men vi dropper sannsynlighetsvekting (eller setter dem = 1)
     for u in U:
-        pi_u = nodes[u].cond_prob if mode == "extensive" else 1.0 # π_u
+        pi_u = nodes[u].cond_prob # π_u
 
         # Innerste ledd for gitt u
         term_u = gp.quicksum(
@@ -148,7 +148,7 @@ def _build_objective(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i, mo
 
         # Stage 3
         for v in V[u]:
-            pi_v_u = nodes[v].cond_prob if mode == "extensive" else 1.0 # π_{v|u}
+            pi_v_u = nodes[v].cond_prob# π_{v|u}
 
             term_v = gp.quicksum(
                 P[ (m, v) ] * a[m, v] for m in M_v
@@ -156,7 +156,7 @@ def _build_objective(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i, mo
 
             # Stage 4
             for w in W[v]:
-                pi_w_v = nodes[w].cond_prob if mode == "extensive" else 1.0 # π_{w|v}
+                pi_w_v = nodes[w].cond_prob # π_{w|v}
 
                 revenue_w = gp.quicksum(
                     P[ (m, w) ] * a[m, w] for m in M_w
@@ -170,7 +170,7 @@ def _build_objective(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i, mo
 
                 # Stage 5: Imbalance settlement
                 for l in L[w]:
-                    pi_l_w = nodes[l].cond_prob if mode == "extensive" else 1.0 # π_{l|w}
+                    pi_l_w = nodes[l].cond_prob # π_{l|w}
 
                     imbalance = P[ ("imb", l) ] * i[w]
 
@@ -184,6 +184,11 @@ def _build_objective(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i, mo
         obj += pi_u * term_u
 
     return obj
+
+
+def _build_objective_progressive_hedging(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i):
+    # Implementer
+    return
 
 
 def _add_production_constraints(model, q, Q, W_all):
@@ -342,7 +347,7 @@ def _add_market_constraints(model, U, V, W, L, V_all, x, a, d, q, i, delta, BIGM
             )
             
             model.addConstr(
-                    d["EAM_down", w] <= BIGM_2 * delta["EAM_down", w]
+                d["EAM_down", w] <= BIGM_2 * delta["EAM_down", w]
             )
             model.addConstr(
                 d["EAM_down", w] <= a["EAM_down", w]
