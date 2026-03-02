@@ -34,9 +34,6 @@ def build_price_parameter(tree):
                 P[("EAM_up", s)] = node.info["EAM_up"]
             if "EAM_down" in node.info:
                 P[("EAM_down", s)] = node.info["EAM_down"]
-        
-        # --- Stage 5: Imbalance price ---
-        elif node.stage == 5:
             if "imb" in node.info:
                 P[("imb", s)] = node.info["imb"]
 
@@ -97,7 +94,7 @@ def sort_nodes(node_set):
 
 
 
-def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
+def print_results(model_container, max_u=5, max_v_per_u=9, max_w_per_v=28):
     """
     Skriver ut en komprimert oversikt over løsningen.
 
@@ -113,7 +110,8 @@ def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
     delta = model_container.vars["delta"]
     d = model_container.vars["d"]
     i = model_container.vars["i"]
-    q = model_container.vars["q"]
+    q_scheduled = model_container.vars["q_scheduled"]
+    q_actual = model_container.vars["q_actual"]
 
     Q = model_container.params["Q"]
     P = model_container.params["P"]
@@ -121,7 +119,6 @@ def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
     U = model_container.sets["U"]
     V = model_container.sets["V"]
     W = model_container.sets["W"]
-    L = model_container.sets["L"]
     M_u = model_container.sets["M_u"]
     M_v = model_container.sets["M_v"]
     M_w = model_container.sets["M_w"]
@@ -178,8 +175,6 @@ def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
                 )
     print()
 
-    # Vi lagrer hvilke w-er vi skriver ut per v, så vi kan bruke de samme i stage 5
-    W_samples = {}
 
     # ---------- Stage 4: EAM ----------
     print("--- Stage 4 (EAM) – child w scenarios per v ---")
@@ -187,7 +182,6 @@ def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
         for v in V_samples[u]:
             W_v_sorted = sort_nodes(W[v])
             W_sample = W_v_sorted[:max_w_per_v]
-            W_samples[v] = W_sample
 
             print(f"\nParent scenario v = {v} (from u = {u}):")
             for w in W_sample:
@@ -202,24 +196,13 @@ def print_results(model_container, max_u=3, max_v_per_u=3, max_w_per_v=4):
                         f"d_CM_u={d['CM_up', w].X:.3f}, "
                         f"d_CM_d={d['CM_down', w].X:.3f}, "
                         f"Q={Q[w]:.3f}, "
-                        f"q={q[w].X:.3f}, "
-                        f"i={i[w].X:.3f}"
+                        f"q_sched={q_scheduled[w].X:.3f}, "
+                        #f"q_actual={q_actual[w].X:.3f}, "
+                        f"i={i[w].X:.3f}, "
+                        f"P_imb={P[('imb', w)]:.3f}"
                     )
     print()
 
-    # ---------- Stage 5: imbalance ----------
-    print("--- Stage 5 (Imbalance) – child l scenarios per w ---")
-    for u in U_sorted:
-        for v in V_samples[u]:
-            for w in W_samples[v]:
-                L_w_sorted = sort_nodes(L[w])
-                L_sample = L_w_sorted
-
-                print(f"\nParent scenario W = {w} (from u = {u}, v = {v}):")
-                for l in L_sample:
-                    print(
-                        f"P_imb={P[('imb', l)]:.3f}"
-                    )
 
     print("=============================================")
     print("            END OF RESULTS")
