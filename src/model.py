@@ -1,3 +1,4 @@
+from xml.parsers.expat import model
 import gurobipy as gp
 from gurobipy import GRB
 import src.tree as tree
@@ -19,12 +20,11 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     M_u, M_v, M_w, M = get_market_products()
 
     # Bygg sett fra treet
-    U, V, W, S, L = tree.build_sets_from_tree(scenario_tree)
+    U, V, W, S = tree.build_sets_from_tree(scenario_tree)
 
     # flate mengder for v- og w-noder:
     V_all = set().union(*V.values())
     W_all = set().union(*W.values())
-    L_all = set().union(*L.values())
 
     # bygg indeksmengder (m,s)
     idx_ms, idx_mw = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
@@ -58,8 +58,10 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     # Binær variabel som indikerer om vi faktisk legger inn et bud (≠ 0)
     b = model.addVars([(m, s) for (m, s) in idx_ms if m in (M_u + M_w)], vtype=GRB.BINARY, name="b")
     
-    # Mengde fysisk produksjon
-    q = model.addVars([w for w in W_all], lb=0, name="q")
+    # Produksjonsforpliktelse/planlagt produksjon
+    q_scheduled = model.addVars([w for w in W_all], lb=0, name="q_scheduled")
+    # Faktisk produksjon (min av Q og q_scheduled)
+    q_actual = model.addVars([w for w in W_all], lb=0, name="q_actual")
     # Imbalance. Differanse mellom faktisk produksjon og produksjonsforpliktelse
     i = model.addVars([w for w in W_all], lb=0, name="i")
 
@@ -67,15 +69,13 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
 
     # --- OBJECTIVE FUNCTION ---
     if mode == "extensive":
-        obj = _build_objective_extensive_form(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i)
+        obj = _build_objective_extensive_form(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i)
     elif mode == "progressive_hedging":
-        obj = _build_objective_progressive_hedging(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i)
+        obj = _build_objective_progressive_hedging(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i)
 
     model.setObjective(obj, GRB.MAXIMIZE)
 
-    # --- PRODUCTION CONSTRAINTS ---
-    _add_production_constraints(model, q, Q, W_all)
-
+ 
     # --- ACTIVATION CONSTRAINTS ---
     _add_activation_constraints(model, idx_ms, x, a, delta, r, P, BIGM_1, BIGM_2, epsilon)
 
@@ -86,7 +86,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     _add_nonanticipativity_constraints(model, U, V, W, V_all, M_u, M_v, M_w, x, r)
 
     # --- MARKET CONSTRAINTS ---
-    _add_market_constraints(model, U, V, W, L, V_all, x, a, d, q, i, delta, BIGM_2)
+    _add_market_constraints(model, U, V, W, V_all, Q, x, a, d, q_scheduled, q_actual, i, delta, BIGM_2)
 
     # --- MINIMUM BID CONSTRAINTS FOR mFRR MARKETS ---
     _add_min_bid_constraints(model, b, x, x_mFRR_min, BIGM_2)
@@ -107,7 +107,8 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
             "a": a,
             "d": d,
             "b": b,
-            "q": q,
+            "q_scheduled": q_scheduled,
+            "q_actual": q_actual,
             "i": i
         },
         params={
@@ -119,7 +120,6 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
             "U": U,
             "V": V,
             "W": W,
-            "L": L,
             "M_u": M_u,
             "M_v": M_v,
             "M_w": M_w
@@ -132,7 +132,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
 
 
 
-def _build_objective_extensive_form(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i):
+def _build_objective_extensive_form(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i):
     nodes = scenario_tree["nodes"]
     obj = gp.LinExpr()
 
@@ -161,22 +161,15 @@ def _build_objective_extensive_form(scenario_tree, U, V, W, L, M_u, M_v, M_w, P,
                 revenue_w = gp.quicksum(
                     P[ (m, w) ] * a[m, w] for m in M_w
                 )
+
+                imbalance = P[ ("imb", w) ] * i[w]
                 
                 penalty_w = gp.quicksum(
                     C[ (m, w) ] * d[m, w] for m in M_u + M_w
                 )
 
-                term_w = revenue_w - penalty_w
+                term_w = revenue_w + imbalance - penalty_w
 
-                # Stage 5: Imbalance settlement
-                for l in L[w]:
-                    pi_l_w = nodes[l].cond_prob # π_{l|w}
-
-                    imbalance = P[ ("imb", l) ] * i[w]
-
-                
-                    term_w += pi_l_w * imbalance
-                    
                 term_v += pi_w_v * term_w
 
             term_u += pi_v_u * term_v
@@ -186,18 +179,10 @@ def _build_objective_extensive_form(scenario_tree, U, V, W, L, M_u, M_v, M_w, P,
     return obj
 
 
-def _build_objective_progressive_hedging(scenario_tree, U, V, W, L, M_u, M_v, M_w, P, C, a, d, i):
+def _build_objective_progressive_hedging(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i):
     # Implementer
     return
 
-
-def _add_production_constraints(model, q, Q, W_all):
-    # q_w <= Q_w
-    for w in W_all:
-        model.addConstr(
-            q[w] <= Q[w], 
-            name=f"prod_cap[{w}]"
-        )
 
 def _add_activation_constraints(model, idx_ms, x, a, delta, r, P, BIGM_1, BIGM_2, epsilon):
     # Aktiveringsgrenser (for alle gyldige (m,s))
@@ -302,7 +287,7 @@ def _add_nonanticipativity_constraints(model, U, V, W, V_all, M_u, M_v, M_w, x, 
                 )
 
 
-def _add_market_constraints(model, U, V, W, L, V_all, x, a, d, q, i, delta, BIGM_2):
+def _add_market_constraints(model, U, V, W, V_all, Q, x, a, d, q_scheduled, q_actual, i, delta, BIGM_2):
     # any up or down regulation committed in market 1 must be followed by at least the same amount of up or down bidding in stage 3
     # Forpliktelse i CM må følges opp i EAM, eller gi straff for brudd på CM
     for u in U:
@@ -316,21 +301,37 @@ def _add_market_constraints(model, U, V, W, L, V_all, x, a, d, q, i, delta, BIGM
                 )
 
     
-    # Balansere produksjon og produksjonsforpliktelse
+    # Balansere produksjonskapasitet og produksjonsforpliktelse
     for v in V_all:
         for w in W[v]:
-            # Imbalance definisjon
+            # Avleder total produksjonsforpliktelse
             model.addConstr(
-                i[w] == q[w] - a["DA", v] - a["EAM_up", w] + a["EAM_down", w]
+                q_scheduled[w] == a["DA", v] + a["EAM_up", w] - a["EAM_down", w],
+                name=f"prod_commitment[{w}]"
             )
+            ## Imbalance definisjon. Negativ imbalance hvis produksjonsforpliktelse er høyere enn kapasitet. Ellers null.
+            #model.addConstr(
+            #    i[w] == min(0, Q[w] - q_scheduled[w])
+            #)
+
+            z = model.addVar(name=f"z_{w}")
+            model.addConstr(z == Q[w] - q_scheduled[w])
+
+            zero = model.addVar(lb=0, ub=0, name="zero")
+
+            model.addGenConstrMin(i[w], [zero, z])
     
     # Avvik i EAM-markedet
     for v in V_all:
         for w in W[v]:
             
+            # q_actual = min(Q, q_scheduled)
+            model.addGenConstrMin(q_actual[w], [Q[w], q_scheduled[w]])
+
+
             # EAM up
             model.addConstr(
-                d["EAM_up", w] >= a["DA", v] + a["EAM_up", w] - q[w] - BIGM_2*(1 - delta["EAM_up", w])
+                d["EAM_up", w] >= a["DA", v] + a["EAM_up", w] - q_actual[w] - BIGM_2*(1 - delta["EAM_up", w])
             )
             
             model.addConstr(
@@ -343,7 +344,7 @@ def _add_market_constraints(model, U, V, W, L, V_all, x, a, d, q, i, delta, BIGM
 
             # EAM down
             model.addConstr(
-                d["EAM_down", w] >= a["DA", v] + a["EAM_down", w] - q[w] - BIGM_2*(1 - delta["EAM_down", w])
+                d["EAM_down", w] >= q_actual[w] - (a["DA", v] - a["EAM_down", w]) - BIGM_2*(1 - delta["EAM_down", w])
             )
             
             model.addConstr(
@@ -396,7 +397,7 @@ def initialize_run(time_str, n, seed=None):
     # finn max-pris for hvert marked
     M_u, M_v, M_w, M = get_market_products()
 
-    U, V, W, S, L = tree.build_sets_from_tree(full_scenario_tree)
+    U, V, W, S = tree.build_sets_from_tree(full_scenario_tree)
 
     V_all = set().union(*V.values())
     W_all = set().union(*W.values())
