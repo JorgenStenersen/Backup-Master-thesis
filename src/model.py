@@ -309,25 +309,23 @@ def _add_market_constraints(model, U, V, W, V_all, Q, x, a, d, q_scheduled, q_ac
                 q_scheduled[w] == a["DA", v] + a["EAM_up", w] - a["EAM_down", w],
                 name=f"prod_commitment[{w}]"
             )
+
+            # q_actual = min(Q, q_scheduled)
+            model.addGenConstrMin(q_actual[w], [Q[w], q_scheduled[w]])
+
             ## Imbalance definisjon. Negativ imbalance hvis produksjonsforpliktelse er høyere enn kapasitet. Ellers null.
             #model.addConstr(
             #    i[w] == min(0, Q[w] - q_scheduled[w])
             #)
 
-            z = model.addVar(name=f"z_{w}")
-            model.addConstr(z == Q[w] - q_scheduled[w])
-
-            zero = model.addVar(lb=0, ub=0, name="zero")
-
-            model.addGenConstrMin(i[w], [zero, z])
+            model.addConstr(
+                i[w] == q_actual[w] - q_scheduled[w], 
+                name=f"imbalance[{w}]"
+            )
     
     # Avvik i EAM-markedet
     for v in V_all:
         for w in W[v]:
-            
-            # q_actual = min(Q, q_scheduled)
-            model.addGenConstrMin(q_actual[w], [Q[w], q_scheduled[w]])
-
 
             # EAM up
             model.addConstr(
