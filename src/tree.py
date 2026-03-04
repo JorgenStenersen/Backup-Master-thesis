@@ -210,5 +210,23 @@ def build_index_sets(U, V_all, W_all, M_u, M_v, M_w, M):
         for m in M:
             idx_mw.append((m, w))
 
+    
+    # DA
+    idx_DA = []
+    for v in V_all:
+        for m in M_v:
+            idx_DA.append((m, v))
 
-    return idx_ms, idx_mw
+    # mFRR
+    idx_mFRR = []
+    for u in U:
+        for m in M_u:
+            idx_mFRR.append((m, u))
+    
+    for w in W_all:
+        for m in M_w:
+            idx_mFRR.append((m, w))
+    
+
+
+    return idx_ms, idx_mw, idx_DA, idx_mFRR

@@ -27,7 +27,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     W_all = set().union(*W.values())
 
     # bygg indeksmengder (m,s)
-    idx_ms, idx_mw = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
+    idx_ms, idx_mw, idx_DA, idx_mFRR = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
 
     # --- PARAMETERS ---
     
@@ -45,14 +45,18 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
 
     # --- VARIABLES ---
 
-    # x_ms: bid quantity
-    x = model.addVars(idx_ms, lb=0, vtype=GRB.INTEGER, name="x")
+    # x_ms: bid quantity (heltall for mFRR, kontinuerlig for DA)
+    x = gp.tupledict()
+    x.update(model.addVars(idx_DA,   lb=0, vtype=GRB.CONTINUOUS, name="x"))
+    x.update(model.addVars(idx_mFRR, lb=0, vtype=GRB.INTEGER,   name="x"))
     # r_ms: bid price
     r = model.addVars(idx_ms, lb=-GRB.INFINITY, name="r")
     # δ_ms: 1 hvis budet aktiveres
     delta = model.addVars(idx_ms, vtype=GRB.BINARY, name="delta")
-    # a_ms: aktivert kvantum
-    a = model.addVars(idx_ms, lb=0, vtype=GRB.INTEGER, name="a")
+    # a_ms: aktivert kvantum (heltall for mFRR, kontinuerlig for DA)
+    a = gp.tupledict()
+    a.update(model.addVars(idx_DA,   lb=0, vtype=GRB.CONTINUOUS, name="a"))
+    a.update(model.addVars(idx_mFRR, lb=0, vtype=GRB.INTEGER,   name="a"))
     # d_mw: avvik fra aktivert kvantum i terminale scenarier
     d = model.addVars(idx_mw, lb=0, ub=BIGM_2, name="d")
     # Binær variabel som indikerer om vi faktisk legger inn et bud (≠ 0)
@@ -63,7 +67,7 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     # Faktisk produksjon (min av Q og q_scheduled)
     q_actual = model.addVars([w for w in W_all], lb=0, name="q_actual")
     # Imbalance. Differanse mellom faktisk produksjon og produksjonsforpliktelse
-    i = model.addVars([w for w in W_all], lb=0, name="i")
+    i = model.addVars([w for w in W_all], lb=-GRB.INFINITY, name="i")
 
 
 
@@ -400,7 +404,7 @@ def initialize_run(time_str, n, seed=None):
     V_all = set().union(*V.values())
     W_all = set().union(*W.values())
 
-    idx_ms, idx_mw = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
+    idx_ms, idx_mw, idx_DA, idx_mFRR = tree.build_index_sets(U=U, V_all=V_all, W_all=W_all, M_u=M_u, M_v=M_v, M_w=M_w, M=M)
 
     Pmax_per_market = {m: max(P[m, s] for s in S if (m, s) in idx_ms) for m in M} # Høyeste pris for hvert produkt
 
