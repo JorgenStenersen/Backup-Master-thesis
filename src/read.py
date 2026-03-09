@@ -256,3 +256,90 @@ def load_parameters_from_parquet(time_str: str, scenarios: int, seed=None):
 
     return CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices
 
+
+def get_global_bounds_from_raw_data(time_str: str):
+    """
+    Henter globale grenseverdier direkte fra rå markedsdata for et gitt tidspunkt.
+    
+    Dette uten å bygge hele scenario-treet eller velge ut scenarios.
+    Brukes når du trenger Big-M konstanter før modelbygging.
+    
+    Args:
+        time_str: Tidspunkt som string (f.eks. "2025-10-05")
+    
+    Returns:
+        Dict med:
+        - "Qmax": Høyeste produksjonkapasitet (wind speed) på tvers av alle forecasts
+        - "Pmax": Høyeste pris på tvers av alle markeder og alle forecasts
+        - "Pmax_per_market": Dict med høyeste pris per marked
+                            Nøkler: "CM_up", "CM_down", "DA", "EAM_up", "EAM_down", "imbalance"
+    """
+    
+    print(f"\nLoading global bounds for time: {time_str}")
+    data = load_market_data(
+        time_str=time_str,
+        raw_path="data",
+        area="NO3",
+        park="roan",
+    )
+    
+    # Samle alle priser
+    all_prices = []
+    Pmax_per_market = {}
+    
+    # CM markets
+    if data["mfrr_cm_up_forecasts"]:
+        cm_up_prices = [float(p) for p in data["mfrr_cm_up_forecasts"]]
+        Pmax_per_market["CM_up"] = max(cm_up_prices)
+        all_prices.extend(cm_up_prices)
+    
+    if data["mfrr_cm_down_forecasts"]:
+        cm_down_prices = [float(p) for p in data["mfrr_cm_down_forecasts"]]
+        Pmax_per_market["CM_down"] = max(cm_down_prices)
+        all_prices.extend(cm_down_prices)
+    
+    # DA market
+    if data["dayahead_forecasts"]:
+        da_prices = [float(p) for p in data["dayahead_forecasts"]]
+        Pmax_per_market["DA"] = max(da_prices)
+        all_prices.extend(da_prices)
+    
+    # EAM markets
+    if data["mfrr_eam_up_forecasts"]:
+        eam_up_prices = [float(p) for p in data["mfrr_eam_up_forecasts"]]
+        Pmax_per_market["EAM_up"] = max(eam_up_prices)
+        all_prices.extend(eam_up_prices)
+    
+    if data["mfrr_eam_down_forecasts"]:
+        eam_down_prices = [float(p) for p in data["mfrr_eam_down_forecasts"]]
+        # EAM_down er negativ i dataene, så tar abs for å få maksimal verdi
+        Pmax_per_market["EAM_down"] = max(abs(p) for p in eam_down_prices)
+        all_prices.extend([abs(p) for p in eam_down_prices])
+    
+    # Imbalance prices (hvis tilgjengelig)
+    if data["imbalance_forecasts"]:
+        imb_prices = [float(p) for p in data["imbalance_forecasts"]]
+        Pmax_per_market["imbalance"] = max(imb_prices)
+        all_prices.extend(imb_prices)
+    
+    # Samle alle produksjonsverdier
+    Qmax = 0
+    if data["production_forecasts"]:
+        wind_speeds = [float(w) for w in data["production_forecasts"]]
+        Qmax = max(wind_speeds)
+    
+    # Finn høyeste pris på tvers av alle markeder
+    Pmax = max(all_prices) if all_prices else 0
+    
+    global_bounds = {
+        "Qmax": Qmax,
+        "Pmax": Pmax,
+        "Pmax_per_market": Pmax_per_market
+    }
+    
+    print(f"✓ Global bounds computed:")
+    print(f"  - Qmax: {Qmax:.4f}")
+    print(f"  - Pmax: {Pmax:.4f}")
+    print(f"  - Markets with data: {list(Pmax_per_market.keys())}")
+    
+    return global_bounds
