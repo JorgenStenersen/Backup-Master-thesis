@@ -88,7 +88,7 @@ def sort_nodes(node_set):
 
 
 
-def print_results(model_container, max_u=5, max_v_per_u=9, max_w_per_v=28):
+def print_results(model_container, max_u=5, max_v_per_u=6, max_w_per_v=6):
     """
     Skriver ut en komprimert oversikt over løsningen.
 

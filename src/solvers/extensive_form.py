@@ -9,7 +9,7 @@ def run_model(time_str, n, seed=None, verbose=True):
 
     input_data = read.load_parameters_from_parquet(time_str, n, seed)
 
-    scenario_tree = tree.build_scenario_tree(input_data, n, seed)
+    scenario_tree = tree.build_scenario_tree(input_data)
     global_bounds = read.get_global_bounds_from_input_data(input_data)
 
 

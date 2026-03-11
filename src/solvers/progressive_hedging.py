@@ -48,7 +48,7 @@ def solve_bundles(B, global_bounds, models=None, base_objs=None, verbose=False):
 
     Input:
         B:              list of scenario tree dicts (output from build_scenario_bundles)
-        global_bounds:  dict with global Big-M bounds (from get_global_bounds_from_raw_data)
+        global_bounds:  dict with global Big-M bounds (from get_global_bounds_from_input_data)
         verbose:        if True, print per-bundle summaries
 
     Returns:
