@@ -77,7 +77,10 @@ def build_model(scenario_tree, global_bounds, mode="extensive"): # Scenario tree
     elif mode == "progressive_hedging":
         obj = _build_objective_progressive_hedging(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i)
 
-    model.setObjective(obj, GRB.MAXIMIZE)
+    if mode == "progressive_hedging":
+        model.setObjective(obj, GRB.MINIMIZE)
+    else:
+        model.setObjective(obj, GRB.MAXIMIZE)
 
  
     # --- ACTIVATION CONSTRAINTS ---
@@ -184,8 +187,12 @@ def _build_objective_extensive_form(scenario_tree, U, V, W, M_u, M_v, M_w, P, C,
 
 
 def _build_objective_progressive_hedging(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i):
-    # Implementer
-    return
+    """
+    Same objective as the extensive form, but multiplied by -1.
+    Used together with GRB.MINIMIZE so that min(-f) = max(f).
+    """
+    obj = _build_objective_extensive_form(scenario_tree, U, V, W, M_u, M_v, M_w, P, C, a, d, i)
+    return -1.0 * obj
 
 
 def _add_activation_constraints(model, idx_ms, x, a, delta, r, P, BIGM_1, BIGM_2, epsilon):

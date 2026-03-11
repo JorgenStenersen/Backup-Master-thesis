@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 
 
-
 def build_price_parameter(tree):
     """
     Lager P_ms som dictionary:
@@ -84,13 +83,8 @@ def build_cost_parameters(U, V, W, P):
 
 
 def sort_nodes(node_set):
-    """Sorter noder som 'v1', 'v2', ..., 'v10' i numerisk rekkefølge."""
-    def node_key(s):
-        try:
-            return int(s[1:])  # antar format 'v1', 'w12' etc.
-        except ValueError:
-            return s
-    return sorted(node_set, key=node_key)
+    """Sort nodes alphabetically by their content-based ID."""
+    return sorted(node_set)
 
 
 

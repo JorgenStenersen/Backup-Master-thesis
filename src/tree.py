@@ -3,6 +3,13 @@ from itertools import product
 from typing import Dict, List, Any, Optional
 import src.read as read
 
+# Precision for rounding floats in node IDs (number of decimal places)
+_ID_PRECISION = 4
+
+def _r(val):              
+    """Round a numeric value for use in node IDs."""
+    return round(float(val), _ID_PRECISION)               #the function of this is to never let reounding errors influence node id's.
+
 
 @dataclass
 class Node:
@@ -13,9 +20,15 @@ class Node:
     cond_prob: float          # betinget sannsynlighet gitt foreldrenoden
 
 
-def build_scenario_tree(time_str: str, n:int, seed=None) -> Dict[str, Any]:
+def build_scenario_tree(input_data: Dict[str, Any]) -> Dict[str, Any]:
+
+    CM_up = input_data["CM_up"]
+    CM_down = input_data["CM_down"] 
+    DA = input_data["DA"]
+    EAM_up = input_data["EAM_up"]
+    EAM_down = input_data["EAM_down"]
+    wind_speed = input_data["wind_speed"]
     
-    CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, picked_scenario_indices = read.load_parameters_from_parquet(time_str, n, seed)
 
     print("Read parameters from parquet.")
     print (CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed)
@@ -52,7 +65,7 @@ def build_scenario_tree(time_str: str, n:int, seed=None) -> Dict[str, Any]:
 
     stage2_nodes: List[str] = []
     for idx, (p_up, p_down) in enumerate(product(CM_up, CM_down), start=1):
-        name = f"u{idx}"
+        name = f"u_({_r(p_up)},{_r(p_down)})"
         info = {"CM_up": p_up, "CM_down": p_down}
         add_node(name, stage=2, parent=root, info=info, cond_prob=cm_cond_prob)
         stage2_nodes.append(name)
@@ -64,8 +77,10 @@ def build_scenario_tree(time_str: str, n:int, seed=None) -> Dict[str, Any]:
 
     stage3_nodes: List[str] = []
     for parent_u in stage2_nodes:
+        # Extract parent CM values from the parent node's info
+        parent_info = nodes[parent_u].info
         for p_da in DA:
-            name = f"v{len(stage3_nodes) + 1}"
+            name = f"v_({_r(parent_info['CM_up'])},{_r(parent_info['CM_down'])}|{_r(p_da)})"
             info = {"DA": p_da}
             add_node(name, stage=3, parent=parent_u, info=info, cond_prob=da_cond_prob)
             stage3_nodes.append(name)
@@ -81,6 +96,12 @@ def build_scenario_tree(time_str: str, n:int, seed=None) -> Dict[str, Any]:
 
     stage4_nodes: List[str] = []
     for parent_v in stage3_nodes:
+        # Build the path prefix from the parent v-node
+        parent_v_info = nodes[parent_v].info
+        grandparent_u = nodes[parent_v].parent
+        gp_info = nodes[grandparent_u].info
+        path_prefix = f"{_r(gp_info['CM_up'])},{_r(gp_info['CM_down'])}|{_r(parent_v_info['DA'])}"
+
         for p_eup, p_edown, w, i in product(EAM_up, EAM_down, wind_speed, imb):
 
             # Vi antar at imbalance prisen er enten EAM_up eller EAM_down, med 50% sannsynlighet hver
@@ -89,7 +110,7 @@ def build_scenario_tree(time_str: str, n:int, seed=None) -> Dict[str, Any]:
             elif i == "down":
                 p_imb = p_edown
 
-            name = f"w{len(stage4_nodes) + 1}"
+            name = f"w_({path_prefix}|{_r(p_eup)},{_r(p_edown)},{_r(w)},{i})"
             info = {
                 "EAM_up": p_eup,
                 "EAM_down": p_edown,
@@ -176,6 +197,37 @@ def build_sets_from_tree(tree):
     S = U.union(V_all).union(W_all)
 
     return U, V, W, S
+
+
+def build_scenario_bundles(input_data: dict, n_per_bundle: int, num_bundles: int, seed: int = 0) -> List[Dict[str, Any]]:
+    """
+    Builds and stores a collection of scenario bundles (small scenario trees).
+
+    Each bundle is a full scenario tree built by build_scenario_tree, using
+    incrementing seeds for reproducibility.
+
+    Input:
+        input_data:   dictionary containing input parameters (CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed)
+        n_per_bundle: number of scenarios per bundle
+        num_bundles:  how many scenario trees (bundles) to generate
+        seed:         base seed for the first bundle; incremented by 1 for each subsequent bundle
+
+    Output:
+        B: list of scenario tree dicts, each with the same structure as
+           returned by build_scenario_tree
+    """
+    B: List[Dict[str, Any]] = []
+
+    for b in range(num_bundles):
+        current_seed = seed + b
+        bundle_data = read.get_bundle_data(input_data, n_per_bundle, current_seed)  # get the same data structure but with different random seed for each bundle
+
+        
+        tree = build_scenario_tree(bundle_data)
+        B.append(tree)
+        print(f"[INFO] Built bundle {b + 1}/{num_bundles} (seed={current_seed})")
+
+    return B
 
 
 def build_index_sets(U, V_all, W_all, M_u, M_v, M_w, M):
