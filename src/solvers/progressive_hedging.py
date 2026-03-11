@@ -10,7 +10,38 @@ import src.tree as tree
 from src.read import get_global_bounds_from_raw_data
 
 
-def solve_bundles(B, global_bounds, verbose=False):
+def build_bundle_models(B, global_bounds, verbose=False):
+    """
+    Pre-builds a Gurobi model for each bundle. These models are reused
+    across all PH iterations to avoid the overhead of re-creating
+    variables, constraints, and index sets every time.
+
+    Input:
+        B:              list of scenario tree dicts
+        global_bounds:  dict with global Big-M bounds
+        verbose:        if True, print progress
+
+    Returns:
+        models:      list of ModelContainer objects (one per bundle)
+        base_objs:   list of base objective expressions (without PH penalties)
+    """
+    models = []
+    base_objs = []
+
+    for b_idx, bundle_tree in enumerate(B):
+        mc = build_model(bundle_tree, global_bounds, mode="progressive_hedging")
+        mc.model.setParam("OutputFlag", 0)
+        mc.model.update()
+        base_objs.append(mc.model.getObjective())
+        models.append(mc)
+
+        if verbose:
+            print(f"[INFO] Built model for bundle {b_idx}")
+
+    return models, base_objs
+
+
+def solve_bundles(B, global_bounds, models=None, base_objs=None, verbose=False):
     """
     Solves the model for each scenario tree (bundle) in B and stores
     the first-, second-, and third-stage decision variables.
@@ -36,9 +67,14 @@ def solve_bundles(B, global_bounds, verbose=False):
 
     for b_idx, bundle_tree in enumerate(B):
 
-        # Build and solve model for this bundle
-        mc = build_model(bundle_tree, global_bounds, mode="progressive_hedging")
-        mc.model.setParam("OutputFlag", 0)  # suppress Gurobi output per bundle
+        # Use pre-built model if available, otherwise build from scratch
+        if models is not None:
+            mc = models[b_idx]
+            # Reset objective to base (in case it was modified by a previous augmented solve)
+            mc.model.setObjective(base_objs[b_idx], GRB.MINIMIZE)
+        else:
+            mc = build_model(bundle_tree, global_bounds, mode="progressive_hedging")
+            mc.model.setParam("OutputFlag", 0)
         mc.model.optimize()
 
         if mc.model.Status != GRB.OPTIMAL:
@@ -328,7 +364,112 @@ def compute_convergence_gap(results, consensus):
     return gap
 
 
-def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha, verbose=False):
+def compute_dual_residual(consensus, prev_consensus, alpha):
+    """
+    Computes the dual residual, measuring how much the consensus changed
+    between two successive PH iterations:
+
+        s^(k) = alpha * || xbar^(k) - xbar^(k-1) ||
+
+    Input:
+        consensus:       current consensus dict
+        prev_consensus:  consensus dict from the previous iteration
+        alpha:           current penalty parameter
+
+    Returns:
+        dual_res: float, the dual residual
+    """
+    M_u, M_v, M_w, _ = get_market_products()
+    sq = 0.0
+
+    # Stage 1
+    for m in consensus["stage1"]:
+        sq += (consensus["stage1"][m]["x"] - prev_consensus["stage1"][m]["x"])**2
+        sq += (consensus["stage1"][m]["r"] - prev_consensus["stage1"][m]["r"])**2
+
+    # Stage 2
+    for key in consensus["stage2"]:
+        sq += (consensus["stage2"][key]["x"] - prev_consensus["stage2"][key]["x"])**2
+        sq += (consensus["stage2"][key]["r"] - prev_consensus["stage2"][key]["r"])**2
+
+    # Stage 3
+    for key in consensus["stage3"]:
+        sq += (consensus["stage3"][key]["x"] - prev_consensus["stage3"][key]["x"])**2
+        sq += (consensus["stage3"][key]["r"] - prev_consensus["stage3"][key]["r"])**2
+
+    return alpha * math.sqrt(sq)
+
+
+def adapt_alpha(alpha, primal_residual, dual_residual, tau=2.0, mu=10.0):
+    """
+    Residual-balancing adaptive alpha update (Boyd et al., ADMM survey).
+
+    If the primal residual (convergence gap) is much larger than the dual
+    residual, alpha is increased to push bundles harder toward consensus.
+    If the dual residual dominates, alpha is decreased to avoid oscillation.
+
+    Input:
+        alpha:            current penalty parameter
+        primal_residual:  convergence gap g^(k)
+        dual_residual:    dual residual s^(k)
+        tau:              scaling factor for alpha adjustments (default 2.0)
+        mu:               threshold ratio for triggering adjustment (default 10.0)
+
+    Returns:
+        alpha: updated penalty parameter
+    """
+    if primal_residual > mu * dual_residual:
+        alpha *= tau
+    elif dual_residual > mu * primal_residual:
+        alpha /= tau
+    return alpha
+
+
+def update_shadow_costs(W_shadow, results, consensus, alpha):
+    """
+    Updates shadow costs in-place, corresponding to steps 21-22:
+
+        w_nb^(k) = w_nb^(k-1) + alpha * (x_nb^(k) - xbar_n^(k))
+
+    Input:
+        W_shadow:   list of shadow-cost dicts (one per bundle), modified in-place
+        results:    list of per-bundle result dicts (updated decisions)
+        consensus:  dict with updated consensus values
+        alpha:      penalty parameter
+
+    Returns:
+        W_shadow (same list, updated in-place)
+    """
+
+    for b_idx, res in enumerate(results):
+        if res is None or W_shadow[b_idx] is None:
+            continue
+
+        w_b = W_shadow[b_idx]
+
+        # Stage 1
+        for m in res["stage1"]:
+            cons = consensus["stage1"][m]
+            w_b["stage1"][m]["x"] += alpha * (res["stage1"][m]["x"] - cons["x"])
+            w_b["stage1"][m]["r"] += alpha * (res["stage1"][m]["r"] - cons["r"])
+
+        # Stage 2
+        for key in res["stage2"]:
+            cons = consensus["stage2"][key]
+            w_b["stage2"][key]["x"] += alpha * (res["stage2"][key]["x"] - cons["x"])
+            w_b["stage2"][key]["r"] += alpha * (res["stage2"][key]["r"] - cons["r"])
+
+        # Stage 3
+        for key in res["stage3"]:
+            cons = consensus["stage3"][key]
+            w_b["stage3"][key]["x"] += alpha * (res["stage3"][key]["x"] - cons["x"])
+            w_b["stage3"][key]["r"] += alpha * (res["stage3"][key]["r"] - cons["r"])
+
+    return W_shadow
+
+
+def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha,
+                           models=None, base_objs=None, verbose=False):
     """
     Solves each bundle with the augmented PH objective (steps 14-16):
 
@@ -339,12 +480,17 @@ def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha, verbos
     The quadratic proximity term penalises deviation from the previous
     consensus.
 
+    If pre-built models are provided, they are reused (only the objective
+    is updated) and the previous solution is used as a warm-start.
+
     Input:
         B:              list of scenario tree dicts
         global_bounds:  dict with global Big-M bounds
         W_shadow:       list of shadow-cost dicts (one per bundle)
         consensus:      current consensus dict
         alpha:          penalty parameter
+        models:         optional list of pre-built ModelContainer objects
+        base_objs:      optional list of base objective expressions
         verbose:        if True, print per-bundle summaries
 
     Returns:
@@ -359,8 +505,17 @@ def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha, verbos
             results.append(None)
             continue
 
-        # Build model with base objective min -f(b)
-        mc = build_model(bundle_tree, global_bounds, mode="progressive_hedging")
+        # Use pre-built model if available, otherwise build from scratch
+        if models is not None:
+            mc = models[b_idx]
+            # Warm-start: set Start attributes from previous solution
+            try:
+                for var in mc.model.getVars():
+                    var.Start = var.X
+            except AttributeError:
+                pass  # No previous solution yet (first augmented iteration)
+        else:
+            mc = build_model(bundle_tree, global_bounds, mode="progressive_hedging")
 
         x = mc.vars["x"]
         r = mc.vars["r"]
@@ -415,9 +570,12 @@ def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha, verbos
                 penalty += alpha * (r[m, w_rep] - xbar_r) * (r[m, w_rep] - xbar_r)
 
         # Add penalty to the base objective
-        mc.model.update()
-        base_obj = mc.model.getObjective()
-        mc.model.setObjective(base_obj + penalty, GRB.MINIMIZE)
+        if models is not None:
+            mc.model.setObjective(base_objs[b_idx] + penalty, GRB.MINIMIZE)
+        else:
+            mc.model.update()
+            base_obj = mc.model.getObjective()
+            mc.model.setObjective(base_obj + penalty, GRB.MINIMIZE)
 
         mc.model.setParam("OutputFlag", 0)
         mc.model.optimize()
@@ -460,25 +618,27 @@ def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha, verbos
 
 
 def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0, verbose=True,
-                            alpha=100, epsilon=1e-2, max_iter=50):
+                            alpha=100, epsilon=1e-2, max_iter=50,
+                            adaptive_alpha=True, tau=2.0, mu=10.0):
     """
     Entry point for the Progressive Hedging algorithm.
 
     Steps 1-11:  Initial solve, consensus, shadow costs.
     Steps 12-16: While g > epsilon, re-solve augmented bundles.
-                 (Steps 18-24 — consensus/shadow-cost updates — not yet
-                  implemented; the loop currently runs a single iteration.)
 
     Input:
-        time_str:     timestamp string
-        n_total:      total number of scenarios
-        n_per_bundle: number of scenarios per bundle tree
-        num_bundles:  how many bundles to generate
-        seed:         base seed for bundle generation
-        verbose:      print progress info
-        alpha:        PH penalty parameter
-        epsilon:      convergence tolerance
-        max_iter:     maximum number of PH iterations
+        time_str:       timestamp string
+        n_total:        total number of scenarios
+        n_per_bundle:   number of scenarios per bundle tree
+        num_bundles:    how many bundles to generate
+        seed:           base seed for bundle generation
+        verbose:        print progress info
+        alpha:          PH penalty parameter (initial value)
+        epsilon:        convergence tolerance
+        max_iter:       maximum number of PH iterations
+        adaptive_alpha: if True, use residual-balancing to adapt alpha each iteration
+        tau:            scaling factor for alpha adjustments (default 2.0)
+        mu:             threshold ratio for triggering adjustment (default 10.0)
 
     Returns:
         B:         list of scenario tree dicts
@@ -490,30 +650,41 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
     input_data = read.load_parameters_from_parquet(time_str, n_total, seed)
     global_bounds = read.get_global_bounds_from_input_data(input_data)
 
-
     # Build scenario bundles
-
-    
-
     B = tree.build_scenario_bundles(input_data, n_per_bundle, num_bundles, seed=seed)
-    print(f"[INFO] Built {num_bundles} scenario bundles.")
+
+    if verbose:
+        adapt_str = f", adaptive (tau={tau}, mu={mu})" if adaptive_alpha else ", fixed"
+        print(f"[PH] {num_bundles} bundles, {n_per_bundle} scenarios each, "
+              f"alpha={alpha}{adapt_str}, eps={epsilon}")
+        print_iteration_header()
+
+    # ------------------------------------------------------------------
+    # Pre-build all bundle models (reused across iterations)
+    # ------------------------------------------------------------------
+    if verbose:
+        print("[PH] Pre-building bundle models...")
+    models, base_objs = build_bundle_models(B, global_bounds)
+    if verbose:
+        print(f"[PH] Built {len(models)} models")
 
     # ------------------------------------------------------------------
     # Steps 2-5: Initial solve (no penalty terms)
     # ------------------------------------------------------------------
-    results = solve_bundles(B, global_bounds, verbose=verbose)
+    results = solve_bundles(B, global_bounds, models=models, base_objs=base_objs, verbose=False)
 
     # Steps 6-8: Compute consensus
-    consensus = compute_consensus(results, verbose=verbose)
+    consensus = compute_consensus(results, verbose=False)
 
     # Steps 9-10: Initialise shadow costs
-    W_shadow = initialize_shadow_costs(results, consensus, alpha=alpha, verbose=verbose)
+    W_shadow = initialize_shadow_costs(results, consensus, alpha=alpha, verbose=False)
 
     # Step 12: Compute initial convergence gap
     g = compute_convergence_gap(results, consensus)
     k = 0
+
     if verbose:
-        print(f"\n[PH] Iteration {k}: convergence gap g = {g:.6f}")
+        print_iteration_row(k, g, results, alpha=alpha)
 
     # ------------------------------------------------------------------
     # Steps 12-16: Iterative improvements
@@ -524,15 +695,73 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
 
         # Steps 14-16: solve augmented sub-problems for every bundle
         results = solve_bundles_augmented(
-            B, global_bounds, W_shadow, consensus, alpha, verbose=verbose
+            B, global_bounds, W_shadow, consensus, alpha,
+            models=models, base_objs=base_objs, verbose=False
         )
 
-        if verbose:
-            print(f"[PH] Iteration {k}: augmented solve complete")
+        # Steps 18-20: Update consensus with the new individual decisions
+        prev_consensus = consensus
+        consensus = compute_consensus(results, verbose=False)
 
-        # Steps 18-24 (consensus update, shadow-cost update, gap update)
-        # will be added in a subsequent step.  For now, break after one
-        # augmented solve so we can inspect the penalised decisions.
-        break
+        # Steps 21-22: Update shadow costs
+        W_shadow = update_shadow_costs(W_shadow, results, consensus, alpha)
+
+        # Step 24: Recompute convergence gap
+        g = compute_convergence_gap(results, consensus)
+
+        # Adaptive alpha: residual-balancing
+        if adaptive_alpha:
+            dual_res = compute_dual_residual(consensus, prev_consensus, alpha)
+            alpha = adapt_alpha(alpha, g, dual_res, tau=tau, mu=mu)
+
+        if verbose:
+            print_iteration_row(k, g, results, alpha=alpha)
+
+    if verbose:
+        status = "CONVERGED" if g <= epsilon else f"MAX ITER ({max_iter})"
+        print(f"{'':->82}")
+        print(f"  Terminated: {status}  (gap={g:.6f}, alpha={alpha:.4f})")
+        print_final_consensus(consensus)
 
     return B, results, consensus, W_shadow
+
+def print_iteration_header():
+    """Print the header row for the PH iteration table."""
+    print(f"\n{'':=<82}")
+    print(f"  {'Iter':>4s}  {'Gap':>12s}  {'Alpha':>10s}  {'Solved':>6s}  "
+          f"{'Obj mean':>12s}  {'Obj std':>10s}  {'Obj range':>12s}")
+    print(f"{'':->82}")
+
+
+def print_iteration_row(k, gap, results, alpha=None):
+    """Print one row summarising PH iteration k."""
+    objs = [r["objective"] for r in results if r is not None]
+    n_solved = len(objs)
+    alpha_str = f"{alpha:>10.4f}" if alpha is not None else f"{'—':>10s}"
+    if n_solved == 0:
+        print(f"  {k:>4d}  {'inf':>12s}  {alpha_str}  {0:>6d}  {'—':>12s}  {'—':>10s}  {'—':>12s}")
+        return
+    mean_obj = sum(objs) / n_solved
+    std_obj = (sum((o - mean_obj)**2 for o in objs) / n_solved) ** 0.5
+    obj_range = max(objs) - min(objs)
+    print(f"  {k:>4d}  {gap:>12.6f}  {alpha_str}  {n_solved:>6d}  "
+          f"{mean_obj:>12.4f}  {std_obj:>10.4f}  {obj_range:>12.4f}")
+
+
+def print_final_consensus(consensus):
+    """Print a compact summary of the converged consensus decisions."""
+    print(f"\n{'':=<82}")
+    print("  CONVERGED CONSENSUS DECISIONS")
+    print(f"{'':->82}")
+    for stage_name, label in [("stage1", "CM  (stage 1)"),
+                               ("stage2", "DA  (stage 2)"),
+                               ("stage3", "EAM (stage 3)")]:
+        stage = consensus[stage_name]
+        if not stage:
+            continue
+        print(f"\n  {label}  ({len(stage)} decision(s))")
+        print(f"  {'Key':>30s}  {'x':>10s}  {'r':>10s}")
+        print(f"  {'':->30s}  {'':->10s}  {'':->10s}")
+        for key, vals in stage.items():
+            print(f"  {str(key):>30s}  {vals['x']:>10.4f}  {vals['r']:>10.4f}")
+    print(f"\n{'':=<82}\n")
