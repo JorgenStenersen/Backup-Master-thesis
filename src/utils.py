@@ -204,7 +204,7 @@ def print_results(model_container, max_u=5, max_v_per_u=6, max_w_per_v=6):
 
 
 
-def select_scenarios(n, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed=None):
+def select_possible_realizations(n, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed=None):
     """
     Velger n scenarier tilfeldig og konsistent på tvers av alle lister.
     """
@@ -238,3 +238,49 @@ def select_scenarios(n, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed=N
 
     # Returnerer også hvilke scenarie-indekser som ble valgt
     return CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_indices.tolist()
+
+
+
+def select_possible_realizations_for_bundle(n, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed=None):
+    """
+    Selects n random values independently for each parameter list.
+    
+    Each parameter is sampled independently without replacement, so you can get
+    e.g., CM_up[3], CM_down[7], DA[1], EAM_up[5], etc. in the same tuple.
+    
+    Returns:
+        Tuples of selected values for each parameter.
+        picked_scenario_indices is returned as a list of tuples showing which indices were picked.
+    """
+
+    # Antall scenarier i hver liste
+    m = len(DA)
+
+    # Sjekk at alle lister har samme lengde
+    assert all(len(lst) == m for lst in [CM_up, CM_down, EAM_up, EAM_down, wind_speed]), \
+        "Alle lister må ha samme lengde"
+
+    if n > m:
+        raise ValueError(f"Kan ikke velge {n} scenarier når det bare finnes {m} scenarier.")
+
+    # Bruk en RNG for renere seed-håndtering
+    rng = np.random.default_rng(seed)
+
+    # Sample each parameter independently
+    def sample_parameter(lst, rng_instance):
+        """Sample n values independently from a list without replacement."""
+        indices = rng_instance.choice(len(lst), size=n, replace=False)
+        return [lst[i] for i in indices], indices.tolist()
+    
+    CM_up_sel, cm_up_indices = sample_parameter(CM_up, rng)
+    CM_down_sel, cm_down_indices = sample_parameter(CM_down, rng)
+    DA_sel, da_indices = sample_parameter(DA, rng)
+    EAM_up_sel, eam_up_indices = sample_parameter(EAM_up, rng)
+    EAM_down_sel, eam_down_indices = sample_parameter(EAM_down, rng)
+    wind_speed_sel, wind_indices = sample_parameter(wind_speed, rng)
+
+    # Return indices as tuples showing which indices were picked for each parameter
+    picked_scenario_indices = list(zip(cm_up_indices, cm_down_indices, da_indices, 
+                                        eam_up_indices, eam_down_indices, wind_indices))
+    
+    return CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices

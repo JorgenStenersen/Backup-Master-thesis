@@ -4,7 +4,7 @@ import pyarrow
 import fastparquet
 import os
 from datetime import datetime
-from src.utils import select_scenarios
+import src.utils as utils
 
 
 def load_parameters_from_csv(path):
@@ -252,7 +252,7 @@ def load_parameters_from_parquet(time_str: str, scenarios: int, seed=None):
         EAM_down[i] = -EAM_down[i]
 
     # We have added seed to be able to generate the same random numbers
-    CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices = select_scenarios(scenarios, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed)
+    CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices = utils.select_possible_realizations(scenarios, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed)
 
     input_data = {
         "CM_up": CM_up_sel,
@@ -441,8 +441,7 @@ def get_global_bounds_from_input_data(input_data: dict):
 
 def get_bundle_data(input_data: dict, n_per_bundle: int, seed=None):
     """
-    Henter data for én bundle ved å tilfeldig velge n_per_bundle scenarier fra input_data.
-    Bruker samme select_scenarios-funksjon som i load_parameters_from_parquet for konsistens.    
+    Henter data for én bundle ved å tilfeldig velge n_per_bundle verdier for hver parameter.
     """
     CM_up      = input_data["CM_up"]
     CM_down    = input_data["CM_down"]
@@ -451,7 +450,7 @@ def get_bundle_data(input_data: dict, n_per_bundle: int, seed=None):
     EAM_down   = input_data["EAM_down"]
     wind_speed = input_data["wind_speed"]
 
-    CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices = select_scenarios(n_per_bundle, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed)
+    CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices = utils.select_possible_realizations_for_bundle(n_per_bundle, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed)
 
     bundle_data = {
         "CM_up": CM_up_sel,
