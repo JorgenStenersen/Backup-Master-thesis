@@ -50,7 +50,7 @@ def solve_bundles(B, global_bounds, market_products, models=None, base_objs=None
 
     Input:
         B:              list of scenario tree dicts (output from build_scenario_bundles)
-        global_bounds:  dict with global Big-M bounds (from get_global_bounds_from_raw_data)
+        global_bounds:  dict with global Big-M bounds (from get_global_bounds_from_input_data)
         market_products: tuple (M_u, M_v, M_w, M) from get_market_products()
         verbose:        if True, print per-bundle summaries
 
