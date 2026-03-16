@@ -1,0 +1,13 @@
+name: bidding_model_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.3
+  - pip
+  - pip:
+      - gurobipy==12.0.0
+      - numpy==2.4.2
+      - pandas==3.0.0
+      - pyarrow==23.0.0
+      - fastparquet==2025.12.0
