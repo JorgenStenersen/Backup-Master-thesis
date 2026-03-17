@@ -25,3 +25,4 @@ __pycache__/
 results/
 
 ph_sge_runs/
+ph_local_runs/
