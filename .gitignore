@@ -14,8 +14,6 @@ data/processed/
 *.pickle
 *.joblib
 *.zip
-*.json
-*.out
 
 # Ignore env
 thesis-env/
@@ -25,3 +23,7 @@ __pycache__/
 
 #ignore results
 results/
+
+ph_sge_runs/
+*.json
+*.out
