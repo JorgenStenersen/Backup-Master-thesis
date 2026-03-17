@@ -1,0 +1,9 @@
+{
+  "iteration": 49,
+  "objective_min": -24255220.675842285,
+  "objective_max": 9666499.538482666,
+  "objective_mean": -18333.840838623048,
+  "objective_std": 10225749.05272071,
+  "bundles_solved": 10,
+  "bundles_missing": 0
+}

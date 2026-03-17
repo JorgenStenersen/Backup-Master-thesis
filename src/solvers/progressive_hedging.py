@@ -10,7 +10,7 @@ import src.tree as tree
 from src.read import get_global_bounds_from_raw_data
 
 
-def build_bundle_models(B, global_bounds, verbose=False):
+def build_bundle_models(B, global_bounds, verbose=False, gurobi_threads=None):
     """
     Pre-builds a Gurobi model for each bundle. These models are reused
     across all PH iterations to avoid the overhead of re-creating
@@ -31,6 +31,8 @@ def build_bundle_models(B, global_bounds, verbose=False):
     for b_idx, bundle_tree in enumerate(B):
         mc = build_model(bundle_tree, global_bounds, mode="progressive_hedging")
         mc.model.setParam("OutputFlag", 0)
+        if gurobi_threads is not None:
+            mc.model.setParam("Threads", int(gurobi_threads))
         mc.model.update()
         base_objs.append(mc.model.getObjective())
         models.append(mc)
@@ -41,7 +43,7 @@ def build_bundle_models(B, global_bounds, verbose=False):
     return models, base_objs
 
 
-def solve_bundles(B, global_bounds, models=None, base_objs=None, verbose=False):
+def solve_bundles(B, global_bounds, market_products, models=None, base_objs=None, verbose=False, gurobi_threads=None):
     """
     Solves the model for each scenario tree (bundle) in B and stores
     the first-, second-, and third-stage decision variables.
@@ -49,6 +51,7 @@ def solve_bundles(B, global_bounds, models=None, base_objs=None, verbose=False):
     Input:
         B:              list of scenario tree dicts (output from build_scenario_bundles)
         global_bounds:  dict with global Big-M bounds (from get_global_bounds_from_input_data)
+        market_products: tuple (M_u, M_v, M_w, M) from get_market_products()
         verbose:        if True, print per-bundle summaries
 
     Returns:
@@ -62,7 +65,7 @@ def solve_bundles(B, global_bounds, models=None, base_objs=None, verbose=False):
                               (EAM markets, one representative per parent DA-node v)
     """
 
-    M_u, M_v, M_w, M = get_market_products()
+    M_u, M_v, M_w, M = market_products
     results = []
 
     for b_idx, bundle_tree in enumerate(B):
@@ -75,6 +78,8 @@ def solve_bundles(B, global_bounds, models=None, base_objs=None, verbose=False):
         else:
             mc = build_model(bundle_tree, global_bounds, mode="progressive_hedging")
             mc.model.setParam("OutputFlag", 0)
+        if gurobi_threads is not None:
+            mc.model.setParam("Threads", int(gurobi_threads))
         mc.model.optimize()
 
         if mc.model.Status != GRB.OPTIMAL:
@@ -229,7 +234,7 @@ def compute_consensus(results, verbose=False):
     return consensus
 
 
-def initialize_shadow_costs(results, consensus, alpha=100, verbose=False):
+def initialize_shadow_costs(results, consensus, alpha=100.0, verbose=False):
     """
     Initialises the shadow costs (dual multipliers) for every node-bundle
     pair, corresponding to steps 9-10 of the PH algorithm:
@@ -293,7 +298,7 @@ def initialize_shadow_costs(results, consensus, alpha=100, verbose=False):
     return W_shadow
 
 
-def compute_convergence_gap(results, consensus):
+def compute_convergence_gap(results, consensus, market_products):
     """
     Computes the convergence gap (step 24 / while-condition 12):
 
@@ -302,8 +307,9 @@ def compute_convergence_gap(results, consensus):
     where pi_nb = 1 / |{bundles containing node n}|.
 
     Input:
-        results:    list of per-bundle result dicts
-        consensus:  dict with "stage1", "stage2", "stage3" consensus values
+        results:         list of per-bundle result dicts
+        consensus:       dict with "stage1", "stage2", "stage3" consensus values
+        market_products: tuple (M_u, M_v, M_w, M) from get_market_products()
 
     Returns:
         gap: float, the total weighted distance from consensus
@@ -313,7 +319,7 @@ def compute_convergence_gap(results, consensus):
     if not solved:
         return float('inf')
 
-    M_u, M_v, M_w, _ = get_market_products()
+    M_u, M_v, M_w, _ = market_products
     gap = 0.0
     num_solved = len(solved)
 
@@ -379,7 +385,6 @@ def compute_dual_residual(consensus, prev_consensus, alpha):
     Returns:
         dual_res: float, the dual residual
     """
-    M_u, M_v, M_w, _ = get_market_products()
     sq = 0.0
 
     # Stage 1
@@ -469,7 +474,8 @@ def update_shadow_costs(W_shadow, results, consensus, alpha):
 
 
 def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha,
-                           models=None, base_objs=None, verbose=False):
+                           market_products, models=None, base_objs=None, verbose=False,
+                           gurobi_threads=None):
     """
     Solves each bundle with the augmented PH objective (steps 14-16):
 
@@ -489,6 +495,7 @@ def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha,
         W_shadow:       list of shadow-cost dicts (one per bundle)
         consensus:      current consensus dict
         alpha:          penalty parameter
+        market_products: tuple (M_u, M_v, M_w, M) from get_market_products()
         models:         optional list of pre-built ModelContainer objects
         base_objs:      optional list of base objective expressions
         verbose:        if True, print per-bundle summaries
@@ -497,7 +504,7 @@ def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha,
         results: list of per-bundle result dicts (same format as solve_bundles)
     """
 
-    M_u, M_v, M_w, M = get_market_products()
+    M_u, M_v, M_w, M = market_products
     results = []
 
     for b_idx, bundle_tree in enumerate(B):
@@ -516,6 +523,9 @@ def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha,
                 pass  # No previous solution yet (first augmented iteration)
         else:
             mc = build_model(bundle_tree, global_bounds, mode="progressive_hedging")
+
+        if gurobi_threads is not None:
+            mc.model.setParam("Threads", int(gurobi_threads))
 
         x = mc.vars["x"]
         r = mc.vars["r"]
@@ -668,10 +678,13 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
     if verbose:
         print(f"[PH] Built {len(models)} models")
 
+    # Fetch market products once, pass to all functions
+    market_products = get_market_products()
+
     # ------------------------------------------------------------------
     # Steps 2-5: Initial solve (no penalty terms)
     # ------------------------------------------------------------------
-    results = solve_bundles(B, global_bounds, models=models, base_objs=base_objs, verbose=False)
+    results = solve_bundles(B, global_bounds, market_products, models=models, base_objs=base_objs, verbose=False)
 
     # Steps 6-8: Compute consensus
     consensus = compute_consensus(results, verbose=False)
@@ -680,7 +693,7 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
     W_shadow = initialize_shadow_costs(results, consensus, alpha=alpha, verbose=False)
 
     # Step 12: Compute initial convergence gap
-    g = compute_convergence_gap(results, consensus)
+    g = compute_convergence_gap(results, consensus, market_products)
     k = 0
 
     if verbose:
@@ -696,7 +709,7 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
         # Steps 14-16: solve augmented sub-problems for every bundle
         results = solve_bundles_augmented(
             B, global_bounds, W_shadow, consensus, alpha,
-            models=models, base_objs=base_objs, verbose=False
+            market_products, models=models, base_objs=base_objs, verbose=False
         )
 
         # Steps 18-20: Update consensus with the new individual decisions
@@ -707,7 +720,7 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
         W_shadow = update_shadow_costs(W_shadow, results, consensus, alpha)
 
         # Step 24: Recompute convergence gap
-        g = compute_convergence_gap(results, consensus)
+        g = compute_convergence_gap(results, consensus, market_products)
 
         # Adaptive alpha: residual-balancing
         if adaptive_alpha:
