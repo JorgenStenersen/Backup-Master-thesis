@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import pickle
 import socket
@@ -8,17 +7,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from src.solvers.progressive_hedging import solve_bundles, solve_bundles_augmented
-
-
-def _load_pickle(path: Path):
-    with path.open("rb") as f:
-        return pickle.load(f)
-
-
-def _save_pickle(path: Path, obj):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("wb") as f:
-        pickle.dump(obj, f)
 
 
 def _resolve_bundle_index(explicit_idx: int | None) -> int:
@@ -37,16 +25,16 @@ def run_bundle_job(
     iteration: int,
     static_file: str,
     out_dir: str,
-    state_file: str = "",
+    consensus: dict | None = None,
+    w_shadow: dict | None = None,
+    alpha: float | None = None,
     gurobi_threads: int = 1,
-) -> None:
+) -> tuple[dict | None, dict]:
     iter_dir = Path(out_dir) / f"iter_{iteration:03d}"
-    results_dir = iter_dir / "results"
-    logs_dir = iter_dir / "logs"
-    results_dir.mkdir(parents=True, exist_ok=True)
-    logs_dir.mkdir(parents=True, exist_ok=True)
+    iter_dir.mkdir(parents=True, exist_ok=True)
 
-    static_data = _load_pickle(Path(static_file))
+    with Path(static_file).open("rb") as f:
+        static_data = pickle.load(f)
 
     bundles = static_data["bundles"]
     if bundle_index < 0 or bundle_index >= len(bundles):
@@ -75,12 +63,8 @@ def run_bundle_job(
                 gurobi_threads=gurobi_threads,
             )[0]
         else:
-            if not state_file:
-                raise ValueError("--state-file is required for augmented mode")
-            state = _load_pickle(Path(state_file))
-            consensus = state["consensus"]
-            w_shadow = state["W_shadow"][bundle_index]
-            alpha = state["alpha"]
+            if consensus is None or w_shadow is None or alpha is None:
+                raise ValueError("consensus, w_shadow, and alpha are required for augmented mode")
 
             result = solve_bundles_augmented(
                 [bundle],
@@ -103,9 +87,6 @@ def run_bundle_job(
     elapsed = end_ts - start_ts
     end_utc = datetime.now(timezone.utc).isoformat()
 
-    out_path = results_dir / f"bundle_{bundle_index:04d}.pkl"
-    _save_pickle(out_path, result)
-
     metrics = {
         "iteration": iteration,
         "mode": mode,
@@ -122,14 +103,7 @@ def run_bundle_job(
         "sge_task_id": os.environ.get("SGE_TASK_ID", ""),
     }
 
-    metrics_path = logs_dir / f"bundle_{bundle_index:04d}_timing.json"
-    with metrics_path.open("w", encoding="utf-8") as f:
-        json.dump(metrics, f, indent=2)
-
-    if status == "error":
-        raise RuntimeError(
-            f"Bundle {bundle_index} failed in iteration {iteration}: {error_message}"
-        )
+    return result, metrics
 
 
 def main() -> None:
@@ -138,7 +112,6 @@ def main() -> None:
     parser.add_argument("--bundle-index", type=int, default=None)
     parser.add_argument("--iter", type=int, required=True)
     parser.add_argument("--static-file", type=str, required=True)
-    parser.add_argument("--state-file", type=str, default="")
     parser.add_argument("--out-dir", type=str, required=True)
     parser.add_argument("--gurobi-threads", type=int, default=1)
     args = parser.parse_args()
@@ -150,7 +123,9 @@ def main() -> None:
         iteration=args.iter,
         static_file=args.static_file,
         out_dir=args.out_dir,
-        state_file=args.state_file,
+        consensus=None,
+        w_shadow=None,
+        alpha=None,
         gurobi_threads=args.gurobi_threads,
     )
 

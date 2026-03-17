@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #$ -N ph_bidding
 #$ -cwd
@@ -10,8 +9,25 @@
 set -euo pipefail
 
 # ----- Cluster modules -----
-module load Anaconda3/2024.02
-module load gurobi/13.0
+if command -v module >/dev/null 2>&1; then
+    module load Anaconda3/2024.02 || echo "[WARN] Could not load module Anaconda3/2024.02; trying existing conda installation."
+    module load gurobi/13.0 || echo "[WARN] Could not load module gurobi/13.0; assuming Gurobi is available via environment variables."
+fi
+
+# If conda is not on PATH (e.g., module unavailable), try common install locations.
+if ! command -v conda >/dev/null 2>&1; then
+    for c in "$HOME/miniconda3/bin/conda" "$HOME/anaconda3/bin/conda" "/opt/conda/bin/conda"; do
+        if [ -x "$c" ]; then
+            export PATH="$(dirname "$c"):$PATH"
+            break
+        fi
+    done
+fi
+
+if ! command -v conda >/dev/null 2>&1; then
+    echo "[ERROR] conda command not found. Load the correct module or install conda on the cluster node."
+    exit 1
+fi
 
 # ----- Conda setup -----
 eval "$(conda shell.bash hook)"
@@ -19,18 +35,19 @@ eval "$(conda shell.bash hook)"
 # Ensure correct project directory
 cd /home/jorgenbs/Master/Kode
 
-# Create environment once if missing
-if ! conda env list | grep -q "bidding_model_env"; then
+# Create or update environment from environment.yml (conda-forge binaries)
+if ! conda env list | awk '{print $1}' | grep -qx "bidding_model_env"; then
     echo "Conda environment 'bidding_model_env' not found. Creating it now..."
     conda env create -f environment.yml
 else
-    echo "Conda environment 'bidding_model_env' already exists."
+    echo "Conda environment 'bidding_model_env' already exists. Updating it now..."
+    conda env update -f environment.yml --prune
 fi
 
 conda activate bidding_model_env
 
 # Basic sanity check: package import + Gurobi version visibility
-python -c "import gurobipy; print(f'gurobipy import ok, version={gurobipy.gurobi.version()}')"
+python -c "import numpy, pandas, pyarrow, fastparquet, gurobipy; print(f'deps ok, gurobipy version={gurobipy.gurobi.version()}')"
 
 # ----- Progressive Hedging runtime config -----
 # Override these with environment variables at submit time if needed.
@@ -45,7 +62,7 @@ MAX_ITER="${MAX_ITER:-50}"
 ADAPTIVE_ALPHA="${ADAPTIVE_ALPHA:-1}"
 TAU="${TAU:-2.0}"
 MU="${MU:-10.0}"
-PH_WORKDIR="${PH_WORKDIR:-.ph_sge_runs/$JOB_ID}"
+PH_WORKDIR="${PH_WORKDIR:-ph_sge_runs/$JOB_ID}"
 
 # ----- Local parallelism config (single SGE compute node) -----
 TOTAL_CORES="${NSLOTS:-1}"

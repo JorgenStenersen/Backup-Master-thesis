@@ -1,0 +1,1479 @@
+ModuleCmd_Load.c(213):ERROR:105: Unable to locate a modulefile for 'Anaconda3/2024.02'
+Conda environment 'bidding_model_env' already exists. Updating it now...
+/home/jorgenbs/miniconda3/lib/python3.13/argparse.py:1258: FutureWarning: `remote_definition` is deprecated and will be removed in 25.9. Use `conda env create --file=URL` instead.
+  subnamespace, arg_strings = subparser.parse_known_args(arg_strings, None)
+2 channel Terms of Service accepted
+Channels:
+ - conda-forge
+ - defaults
+Platform: linux-64
+Collecting package metadata (repodata.json): - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ done
+Solving environment: / - \ | / - done
+
+
+==> WARNING: A newer version of conda exists. <==
+    current version: 25.5.1
+    latest version: 26.1.1
+
+Please update conda by running
+
+    $ conda update -n base -c defaults conda
+
+
+Installing pip dependencies: | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / - \ | / Ran pip subprocess with arguments:
+['/home/jorgenbs/miniconda3/envs/bidding_model_env/bin/python', '-m', 'pip', 'install', '-U', '-r', '/home/jorgenbs/Master/Kode/condaenv.yf91x4kf.requirements.txt', '--exists-action=b']
+Pip subprocess output:
+Requirement already satisfied: gurobipy==12.0.0 in /home/jorgenbs/.local/lib/python3.11/site-packages (from -r /home/jorgenbs/Master/Kode/condaenv.yf91x4kf.requirements.txt (line 1)) (12.0.0)
+
+done
+#
+# To activate this environment, use
+#
+#     $ conda activate bidding_model_env
+#
+# To deactivate an active environment, use
+#
+#     $ conda deactivate
+
+deps ok, gurobipy version=(12, 0, 0)
+Starting local-parallel PH run (SGE): bundles=10, total_cores=10, concurrent_bundles=10, gurobi_threads_per_bundle=1, workdir=ph_sge_runs/5438
+[PH-SGE] Loading data and building bundles...
+
+Loading market data for time: 2025-10-09 21:00:00+00:00
+Using forecast from dayahead_forecasts, created_at: 2025-10-08 05:00:00+00:00
+[WARNING] dayahead_prices.parquet has neither 'prediction_for' nor 'time' as columns (after index reset). Columns: ['area', 'frequency', 'dayahead_price']
+Using forecast from imbalance_forecasts, created_at: 2025-10-08 05:00:00+00:00
+[WARNING] imbalance_prices.parquet has neither 'prediction_for' nor 'time' as columns (after index reset). Columns: ['recorded', 'area', 'frequency', 'imbalance_price']
+Using forecast from mfrr_cm_down_forecasts, created_at: 2025-10-08 05:00:00+00:00
+[WARNING] mfrr_cm_down_prices.parquet has neither 'prediction_for' nor 'time' as columns (after index reset). Columns: ['area', 'frequency', 'mfrr_cm_down_price']
+Using forecast from mfrr_cm_up_forecasts, created_at: 2025-10-08 05:00:00+00:00
+[WARNING] mfrr_cm_up_prices.parquet has neither 'prediction_for' nor 'time' as columns (after index reset). Columns: ['area', 'frequency', 'mfrr_cm_up_price']
+Using forecast from mfrr_eam_down_forecasts, created_at: 2025-10-08 05:00:00+00:00
+[WARNING] mfrr_eam_down_prices.parquet has neither 'prediction_for' nor 'time' as columns (after index reset). Columns: ['recorded', 'area', 'frequency', 'mfrr_eam_down_price']
+Using forecast from mfrr_eam_up_forecasts, created_at: 2025-10-08 05:00:00+00:00
+[WARNING] mfrr_eam_up_prices.parquet has neither 'prediction_for' nor 'time' as columns (after index reset). Columns: ['recorded', 'area', 'frequency', 'mfrr_eam_up_price']
+Using forecast from production_forecasts, created_at: 2025-10-08 05:00:00+00:00
+[WARNING] production.parquet has neither 'prediction_for' nor 'time' as columns (after index reset). Columns: ['park', 'frequency', 'production', 'park_max_capacity']
+✓ Global bounds computed from input data:
+  - Qmax: 239.1738
+  - Pmax: 33.1737
+  - Markets with data: ['CM_up', 'CM_down', 'DA', 'EAM_up', 'EAM_down']
+Read parameters from parquet.
+[9.7207874133715, 12.535757486726448, 12.58785165800906] [3.0754679978233526, 2.6373786789277127, 3.0860632524401432] [7.835593248365775, 8.708440721927186, 7.427946507441678] [33.17372710638604, 33.17372710638604, 13.79296325123475] [-4.174664457840027, -4.174664457840027, -4.174664457840027] [239.1737560941354, 198.79508291079856, 198.00356772026578]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 1/10 (seed=30)
+Read parameters from parquet.
+[12.022154569200985, 12.58785165800906, 15.788902664380974] [2.6373786789277127, 3.0754679978233526, 3.0860632524401432] [7.835593248365775, 7.427946507441678, 6.720607807470847] [33.17372710638604, 33.17372710638604, 33.17372710638604] [-5.451597207106499, -4.174664457840027, -4.174664457840027] [215.94200463320783, 198.79508291079856, 198.00356772026578]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 2/10 (seed=31)
+Read parameters from parquet.
+[9.7207874133715, 12.022154569200985, 12.535757486726448] [3.084441050744814, 3.0754679978233526, 2.9491081873141325] [8.30533966394032, 8.708440721927186, 7.835593248365775] [33.17372710638604, 13.790526495884558, 33.17372710638604] [-4.174664457840027, -4.174664457840027, -5.110886426158135] [237.09586806350998, 198.79508291079856, 239.1737560941354]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 3/10 (seed=32)
+Read parameters from parquet.
+[12.022154569200985, 9.7207874133715, 15.788902664380974] [2.6373786789277127, 3.0754679978233526, 3.084441050744814] [7.427946507441678, 8.30533966394032, 7.835593248365775] [13.79296325123475, 33.17372710638604, 33.17372710638604] [-4.174664457840027, -5.451597207106499, -4.174664457840027] [239.1737560941354, 198.79508291079856, 215.94200463320783]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 4/10 (seed=33)
+Read parameters from parquet.
+[12.58785165800906, 12.535757486726448, 9.7207874133715] [2.9491081873141325, 3.0754679978233526, 3.0860632524401432] [8.708440721927186, 7.427946507441678, 7.835593248365775] [13.790526495884558, 33.17372710638604, 13.79296325123475] [-5.110886426158135, -4.174664457840027, -4.174664457840027] [198.00356772026578, 215.94200463320783, 237.09586806350998]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 5/10 (seed=34)
+Read parameters from parquet.
+[12.535757486726448, 9.7207874133715, 15.788902664380974] [3.0860632524401432, 3.0754679978233526, 2.6373786789277127] [7.835593248365775, 8.30533966394032, 7.427946507441678] [13.790526495884558, 33.17372710638604, 13.79296325123475] [-5.110886426158135, -4.174664457840027, -5.451597207106499] [198.79508291079856, 198.00356772026578, 239.1737560941354]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 6/10 (seed=35)
+Read parameters from parquet.
+[12.022154569200985, 15.788902664380974, 12.535757486726448] [2.6373786789277127, 2.9491081873141325, 3.0754679978233526] [7.835593248365775, 8.30533966394032, 6.720607807470847] [33.17372710638604, 13.79296325123475, 13.790526495884558] [-4.174664457840027, -5.451597207106499, -4.174664457840027] [237.09586806350998, 198.79508291079856, 239.1737560941354]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 7/10 (seed=36)
+Read parameters from parquet.
+[12.58785165800906, 12.535757486726448, 12.022154569200985] [2.9491081873141325, 3.0754679978233526, 3.0860632524401432] [8.30533966394032, 6.720607807470847, 7.835593248365775] [33.17372710638604, 33.17372710638604, 33.17372710638604] [-5.451597207106499, -5.110886426158135, -4.174664457840027] [215.94200463320783, 198.79508291079856, 237.09586806350998]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 8/10 (seed=37)
+Read parameters from parquet.
+[15.788902664380974, 9.7207874133715, 12.535757486726448] [2.9491081873141325, 3.084441050744814, 2.6373786789277127] [7.427946507441678, 8.708440721927186, 6.720607807470847] [33.17372710638604, 13.79296325123475, 13.790526495884558] [-4.174664457840027, -4.174664457840027, -5.451597207106499] [237.09586806350998, 198.00356772026578, 239.1737560941354]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 9/10 (seed=38)
+Read parameters from parquet.
+[12.022154569200985, 15.788902664380974, 12.58785165800906] [3.0860632524401432, 3.084441050744814, 3.0754679978233526] [7.835593248365775, 8.708440721927186, 8.30533966394032] [33.17372710638604, 33.17372710638604, 13.790526495884558] [-5.451597207106499, -4.174664457840027, -5.110886426158135] [198.00356772026578, 198.79508291079856, 215.94200463320783]
+[INFO] Added root node.
+[INFO] Added stage 2 CM nodes.
+[INFO] Added stage 3 DA nodes.
+[INFO] Added stage 4 EAM + wind nodes.
+[INFO] Built bundle 10/10 (seed=39)
+
+==================================================================================
+  Iter           Gap       Alpha  Solved      Obj mean     Obj std     Obj range
+----------------------------------------------------------------------------------
+[PH-SGE] Local parallel execution with max_workers=10, gurobi_threads_per_bundle=1
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+     0    646.850176    100.0000      10     5961.9899    792.9712     2884.7580
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+     1    314.999629    100.0000      10    66695.6490  3411414.9085  9450150.2460
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+     2    164.096663    100.0000      10    22542.6419  1818351.5507  5141552.1566
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+     3     84.518590    100.0000      10    10346.6025  987670.8719  2878116.9929
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+     4     38.160771    100.0000      10     6912.2210  517552.0545  1513103.7815
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+     5     23.468672    100.0000      10     6063.6415  314778.7177   924840.0619
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+     6     18.173278    100.0000      10     5728.7061  183254.9530   522354.6098
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+     7     11.003742     50.0000      10     5582.5754  84243.6764   244035.5339
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+     8     13.327300     50.0000      10     5613.7708  31091.3939    95248.3425
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+     9     11.543478    100.0000      10     5628.5047  38157.7755   116263.5742
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    10      8.313180    100.0000      10     5531.4022   4394.1533    19451.5428
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    11      8.284161    100.0000      10     5627.8216  51117.5600   169370.4536
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    12      8.142736    200.0000      10     5549.0192   4598.9699    20431.6805
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    13      8.036050    400.0000      10     5548.1046  51150.1917   169712.4355
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    14      8.009398    800.0000      10     5388.9693  45093.4862   148735.8691
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    15      8.039615    800.0000      10     5227.8002  146748.0219   487387.7144
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    16      8.020219    800.0000      10     5389.0208  236769.2545   785097.5402
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    17      8.010099    800.0000      10     5228.1134  146746.4686   487405.2490
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    18      9.188143    400.0000      10     5205.5828  237030.3057   785089.1567
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    19      9.186951    200.0000      10     5570.3477  204997.8093   668240.2203
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    20      9.191468    200.0000      10     5582.7501  45213.3246   185258.9628
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    21      8.979577    400.0000      10     5549.1766  64331.0746   195929.1513
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    22      8.053826    200.0000      10     5367.7420  45173.1899   148462.7662
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    23      8.161727    200.0000      10     5707.6651  147051.2102   488412.4632
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    24      8.086318    200.0000      10     5548.1606  51118.2870   169679.6906
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    25      8.051608    200.0000      10     5548.9542  45003.6897   148450.1418
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    26      8.026291    400.0000      10     5548.0814  51150.1042   169783.4961
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    27      8.007513    800.0000      10     5388.9445  45096.6291   148698.9769
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    28      8.001723   1600.0000      10     5228.0742  146746.7324   487408.6362
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    29      8.000863   1600.0000      10     4748.9440  237209.9505   786285.7915
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    30      8.031391   1600.0000      10     5227.6600  530278.7806  1760210.3285
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    31      8.016050   3200.0000      10     4749.0228  237095.7800   786149.3989
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    32      8.004434   6400.0000      10     3948.0850  529442.2847  1757872.3485
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    33      8.001563  12800.0000      10     2188.9454  1006072.2199  3336674.5551
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    34      8.004439  12800.0000      10    -1172.0354  2060062.1586  6839403.5424
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    35      8.002544  25600.0000      10     2188.9630  4074559.3221  13518966.7016
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    36      8.000686  25600.0000      10   -11411.9225  2053002.9222  6820543.8041
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    37      8.084410  12800.0000      10     2095.4864  10211335.4576  33882422.5292
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    38      8.082606  12800.0000      10    -1134.8320  2055618.8175  6799343.4637
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    39      8.044033  12800.0000      10     2198.2724  4076742.3437  13538632.2384
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    40      8.027773  12800.0000      10    -1169.8030  2059038.7519  6830194.1492
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    41      8.021739  12800.0000      10     2188.4721  4075006.9830  13523193.3840
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    42      8.011433  12800.0000      10    -1171.5428  2060238.4206  6840858.0006
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    43      8.005972  12800.0000      10     2189.0416  4074404.7627  13517887.1187
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    44      8.003286  12800.0000      10    -1171.9052  2060207.8026  6840487.8087
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    45      8.002694  12800.0000      10     2188.9435  4074423.3651  13518053.4028
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    46      8.001287  12800.0000      10    -1171.9219  2060193.0281  6840413.4948
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    47      8.000827  25600.0000      10     2188.9456  4074426.4380  13518088.6147
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    48      8.000221  51200.0000      10   -11411.9244  2053079.5451  6821199.6273
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    49      8.040754  25600.0000      10   -18333.8408  10225749.0527  33921720.2143
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter TokenServer to value "10.1.1.1"
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+Set parameter Threads to value 1
+    50      8.119464  12800.0000      10     9026.7935  14333884.1462  47553561.9050
+----------------------------------------------------------------------------------
+  Terminated: MAX ITER (50)  (gap=8.119464, alpha=12800.0000)
+
+==================================================================================
+  CONVERGED CONSENSUS DECISIONS
+----------------------------------------------------------------------------------
+
+  CM  (stage 1)  (2 decision(s))
+                             Key           x           r
+  ------------------------------  ----------  ----------
+                           CM_up    235.0000      9.3903
+                         CM_down    239.0000      2.5881
+
+  DA  (stage 2)  (25 decision(s))
+                             Key           x           r
+  ------------------------------  ----------  ----------
+    ('DA', 'u_(12.5879,3.0755)')      0.0000      8.0349
+    ('DA', 'u_(12.5358,3.0861)')      0.0603      7.9889
+     ('DA', 'u_(9.7208,2.6374)')      0.0056      7.9416
+     ('DA', 'u_(9.7208,3.0861)')      0.0402      7.8368
+    ('DA', 'u_(12.5879,3.0861)')      0.0100      8.0590
+     ('DA', 'u_(9.7208,3.0755)')      0.0012      8.1176
+    ('DA', 'u_(12.5879,2.6374)')      0.0826      7.8368
+    ('DA', 'u_(12.5358,3.0755)')      0.0000      8.1379
+    ('DA', 'u_(12.5358,2.6374)')      0.0005      7.8453
+    ('DA', 'u_(12.0222,3.0755)')      0.0000      8.2902
+    ('DA', 'u_(15.7889,3.0861)')      0.0000      8.1495
+    ('DA', 'u_(15.7889,2.6374)')      0.0000      7.9860
+    ('DA', 'u_(15.7889,3.0755)')      0.0000      8.2010
+    ('DA', 'u_(12.0222,2.6374)')      0.0000      7.7757
+    ('DA', 'u_(12.0222,3.0861)')      0.0000      8.2966
+     ('DA', 'u_(9.7208,3.0844)')      0.0000      8.2089
+    ('DA', 'u_(12.5358,2.9491)')      0.0000      8.0854
+    ('DA', 'u_(12.0222,2.9491)')      0.0000      8.1498
+     ('DA', 'u_(9.7208,2.9491)')      0.0000      7.8573
+    ('DA', 'u_(12.5358,3.0844)')      0.0000      7.9070
+    ('DA', 'u_(12.0222,3.0844)')      0.0000      8.3060
+    ('DA', 'u_(15.7889,3.0844)')      0.0000      8.3166
+    ('DA', 'u_(12.5879,2.9491)')      0.0083      8.0715
+    ('DA', 'u_(15.7889,2.9491)')      0.0000      7.8435
+    ('DA', 'u_(12.5879,3.0844)')      0.0000      8.3063
+
+  EAM (stage 3)  (234 decision(s))
+                             Key           x           r
+  ------------------------------  ----------  ----------
+  ('EAM_up', 'v_(9.7208,3.0861|7.8356)')    238.0000     13.7903
+  ('EAM_down', 'v_(9.7208,3.0861|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0861|7.4279)')    238.0000     13.7903
+  ('EAM_down', 'v_(12.5358,3.0861|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,3.0755|8.7084)')    231.0000     13.7903
+  ('EAM_down', 'v_(12.5879,3.0755|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,2.6374|8.7084)')    239.0000     13.7930
+  ('EAM_down', 'v_(12.5879,2.6374|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,2.6374|7.8356)')    227.5000     23.4833
+  ('EAM_down', 'v_(12.5879,2.6374|7.8356)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.5879,3.0861|8.7084)')    231.0000     13.7903
+  ('EAM_down', 'v_(12.5879,3.0861|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,3.0861|7.4279)')    231.0000     20.2524
+  ('EAM_down', 'v_(12.5879,3.0861|7.4279)')    239.0000     -0.9652
+  ('EAM_up', 'v_(9.7208,3.0861|7.4279)')    238.0000     13.7903
+  ('EAM_down', 'v_(9.7208,3.0861|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,2.6374|7.8356)')    239.0000     13.7903
+  ('EAM_down', 'v_(12.5358,2.6374|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,3.0755|7.8356)')    229.0000     21.5443
+  ('EAM_down', 'v_(12.5879,3.0755|7.8356)')    239.0000     -0.3236
+  ('EAM_up', 'v_(12.5879,2.6374|7.4279)')    227.5000     23.4833
+  ('EAM_down', 'v_(12.5879,2.6374|7.4279)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.5358,3.0755|7.4279)')    238.0000     13.7903
+  ('EAM_down', 'v_(12.5358,3.0755|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0861|8.7084)')    237.0000     13.7901
+  ('EAM_down', 'v_(12.5358,3.0861|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,2.6374|8.7084)')    239.0000     13.7901
+  ('EAM_down', 'v_(12.5358,2.6374|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0861|7.8356)')    237.0000     18.6369
+  ('EAM_down', 'v_(12.5358,3.0861|7.8356)')    239.0000     -1.4666
+  ('EAM_up', 'v_(9.7208,3.0755|8.7084)')    238.0000     13.7903
+  ('EAM_down', 'v_(9.7208,3.0755|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,2.6374|7.4279)')    239.0000     13.7903
+  ('EAM_down', 'v_(12.5358,2.6374|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,3.0755|7.8356)')    238.0000     13.7902
+  ('EAM_down', 'v_(9.7208,3.0755|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0755|8.7084)')    238.0000     13.7903
+  ('EAM_down', 'v_(12.5358,3.0755|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,2.6374|7.8356)')    239.0000     13.7899
+  ('EAM_down', 'v_(9.7208,2.6374|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,2.6374|7.4279)')    239.0000     13.7901
+  ('EAM_down', 'v_(9.7208,2.6374|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,3.0861|8.7084)')    237.0000     13.7901
+  ('EAM_down', 'v_(9.7208,3.0861|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,3.0861|7.8356)')    229.0000     21.5443
+  ('EAM_down', 'v_(12.5879,3.0861|7.8356)')    239.0000     -0.3236
+  ('EAM_up', 'v_(12.5358,3.0755|7.8356)')    238.0000     17.0215
+  ('EAM_down', 'v_(12.5358,3.0755|7.8356)')    239.0000     -2.0013
+  ('EAM_up', 'v_(9.7208,2.6374|8.7084)')    239.0000     13.7901
+  ('EAM_down', 'v_(9.7208,2.6374|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,3.0755|7.4279)')    231.0000     20.2524
+  ('EAM_down', 'v_(12.5879,3.0755|7.4279)')    239.0000     -0.9652
+  ('EAM_up', 'v_(9.7208,3.0755|7.4279)')    238.0000     13.7901
+  ('EAM_down', 'v_(9.7208,3.0755|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,3.0861|7.4279)')    216.0000     33.1737
+  ('EAM_down', 'v_(12.0222,3.0861|7.4279)')    239.0000      5.4516
+  ('EAM_up', 'v_(15.7889,2.6374|6.7206)')    232.0000     20.2516
+  ('EAM_down', 'v_(15.7889,2.6374|6.7206)')    239.0000     -0.9652
+  ('EAM_up', 'v_(15.7889,2.6374|7.8356)')    232.0000     18.6369
+  ('EAM_down', 'v_(15.7889,2.6374|7.8356)')    239.0000     -1.4666
+  ('EAM_up', 'v_(12.0222,2.6374|7.4279)')    227.5000     23.4833
+  ('EAM_down', 'v_(12.0222,2.6374|7.4279)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.0222,3.0861|7.8356)')    223.0000     26.7127
+  ('EAM_down', 'v_(12.0222,3.0861|7.8356)')    239.0000      2.2432
+  ('EAM_up', 'v_(12.0222,3.0755|7.4279)')    227.5000     23.4833
+  ('EAM_down', 'v_(12.0222,3.0755|7.4279)')    239.0000      0.6390
+  ('EAM_up', 'v_(15.7889,3.0861|7.4279)')    227.5000     23.4821
+  ('EAM_down', 'v_(15.7889,3.0861|7.4279)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.5879,3.0861|6.7206)')    226.5000     33.1737
+  ('EAM_down', 'v_(12.5879,3.0861|6.7206)')    239.0000      5.4516
+  ('EAM_up', 'v_(12.0222,2.6374|6.7206)')    227.5000     23.4821
+  ('EAM_down', 'v_(12.0222,2.6374|6.7206)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.5879,3.0755|6.7206)')    226.5000     33.1737
+  ('EAM_down', 'v_(12.5879,3.0755|6.7206)')    239.0000      5.4516
+  ('EAM_up', 'v_(12.0222,3.0861|6.7206)')    226.5000     33.1737
+  ('EAM_down', 'v_(12.0222,3.0861|6.7206)')    239.0000      5.4516
+  ('EAM_up', 'v_(15.7889,2.6374|7.4279)')    233.0000     18.6369
+  ('EAM_down', 'v_(15.7889,2.6374|7.4279)')    239.0000     -1.4666
+  ('EAM_up', 'v_(15.7889,3.0755|6.7206)')    227.5000     23.4821
+  ('EAM_down', 'v_(15.7889,3.0755|6.7206)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.0222,2.6374|7.8356)')    232.0000     20.2524
+  ('EAM_down', 'v_(12.0222,2.6374|7.8356)')    239.0000     -0.9652
+  ('EAM_up', 'v_(15.7889,3.0861|6.7206)')    216.0000     33.1737
+  ('EAM_down', 'v_(15.7889,3.0861|6.7206)')    239.0000      5.4516
+  ('EAM_up', 'v_(12.5879,2.6374|6.7206)')    216.0000     33.1737
+  ('EAM_down', 'v_(12.5879,2.6374|6.7206)')    239.0000      5.4516
+  ('EAM_up', 'v_(15.7889,3.0755|7.4279)')    232.0000     20.2524
+  ('EAM_down', 'v_(15.7889,3.0755|7.4279)')    239.0000     -0.9652
+  ('EAM_up', 'v_(15.7889,3.0755|7.8356)')    230.0000     17.6677
+  ('EAM_down', 'v_(15.7889,3.0755|7.8356)')    239.0000     -1.7866
+  ('EAM_up', 'v_(15.7889,3.0861|7.8356)')    224.0000     20.2516
+  ('EAM_down', 'v_(15.7889,3.0861|7.8356)')    239.0000     -0.9652
+  ('EAM_up', 'v_(12.0222,3.0755|7.8356)')    231.0000     20.2520
+  ('EAM_down', 'v_(12.0222,3.0755|7.8356)')    239.0000     -0.9652
+  ('EAM_up', 'v_(12.0222,3.0755|6.7206)')    231.0000     26.7127
+  ('EAM_down', 'v_(12.0222,3.0755|6.7206)')    239.0000      2.2432
+  ('EAM_up', 'v_(9.7208,2.9491|7.8356)')    237.0000     13.7905
+  ('EAM_down', 'v_(9.7208,2.9491|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,2.9491|8.3053)')    238.0000     20.2516
+  ('EAM_down', 'v_(12.5358,2.9491|8.3053)')    239.0000     -0.9652
+  ('EAM_up', 'v_(9.7208,3.0844|8.3053)')    239.0000     13.7901
+  ('EAM_down', 'v_(9.7208,3.0844|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,2.9491|8.7084)')    239.0000     13.7905
+  ('EAM_down', 'v_(12.0222,2.9491|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,2.9491|8.7084)')    238.0000     13.7905
+  ('EAM_down', 'v_(12.5358,2.9491|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,3.0844|7.8356)')    231.0000     13.7903
+  ('EAM_down', 'v_(12.0222,3.0844|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,2.9491|8.3053)')    238.0000     20.2516
+  ('EAM_down', 'v_(12.0222,2.9491|8.3053)')    239.0000     -0.9652
+  ('EAM_up', 'v_(9.7208,3.0844|7.8356)')    239.0000     13.7901
+  ('EAM_down', 'v_(9.7208,3.0844|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,2.9491|8.7084)')    238.0000     13.7905
+  ('EAM_down', 'v_(9.7208,2.9491|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,3.0844|8.3053)')    232.0000     13.7903
+  ('EAM_down', 'v_(12.0222,3.0844|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0844|8.7084)')    239.0000     13.7905
+  ('EAM_down', 'v_(12.5358,3.0844|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,3.0755|8.3053)')    233.0000     17.6677
+  ('EAM_down', 'v_(12.0222,3.0755|8.3053)')    239.0000     -1.7866
+  ('EAM_up', 'v_(12.5358,3.0755|8.3053)')    238.0000     18.6363
+  ('EAM_down', 'v_(12.5358,3.0755|8.3053)')    239.0000     -1.4666
+  ('EAM_up', 'v_(12.5358,3.0844|7.8356)')    239.0000     13.7905
+  ('EAM_down', 'v_(12.5358,3.0844|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,3.0755|8.3053)')    239.0000     13.7903
+  ('EAM_down', 'v_(9.7208,3.0755|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,2.9491|7.8356)')    238.0000     18.6363
+  ('EAM_down', 'v_(12.5358,2.9491|7.8356)')    239.0000     -1.4666
+  ('EAM_up', 'v_(12.0222,2.9491|7.8356)')    238.0000     20.2516
+  ('EAM_down', 'v_(12.0222,2.9491|7.8356)')    239.0000     -0.9652
+  ('EAM_up', 'v_(9.7208,2.9491|8.3053)')    239.0000     13.7905
+  ('EAM_down', 'v_(9.7208,2.9491|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,3.0755|8.7084)')    227.5000     13.7905
+  ('EAM_down', 'v_(12.0222,3.0755|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0844|8.3053)')    239.0000     13.7905
+  ('EAM_down', 'v_(12.5358,3.0844|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,3.0844|8.7084)')    239.0000     13.7905
+  ('EAM_down', 'v_(9.7208,3.0844|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,3.0844|8.7084)')    227.5000     13.7905
+  ('EAM_down', 'v_(12.0222,3.0844|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,2.6374|8.3053)')    239.0000     13.7901
+  ('EAM_down', 'v_(9.7208,2.6374|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,3.0844|7.4279)')    239.0000     13.7901
+  ('EAM_down', 'v_(15.7889,3.0844|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,3.0755|8.3053)')    232.0000     13.7903
+  ('EAM_down', 'v_(15.7889,3.0755|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,3.0844|8.3053)')    227.5000     13.7901
+  ('EAM_down', 'v_(15.7889,3.0844|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,3.0844|7.4279)')    239.0000     13.7930
+  ('EAM_down', 'v_(12.0222,3.0844|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,3.0844|7.4279)')    239.0000     13.7901
+  ('EAM_down', 'v_(9.7208,3.0844|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,2.6374|8.3053)')    239.0000     13.7903
+  ('EAM_down', 'v_(15.7889,2.6374|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,3.0844|7.8356)')    227.5000     13.7901
+  ('EAM_down', 'v_(15.7889,3.0844|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,2.6374|8.3053)')    239.0000     13.7901
+  ('EAM_down', 'v_(12.0222,2.6374|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,2.9491|7.4279)')    237.0000     13.7905
+  ('EAM_down', 'v_(12.5879,2.9491|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,2.9491|8.7084)')    237.0000     13.7905
+  ('EAM_down', 'v_(12.5879,2.9491|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,2.9491|7.4279)')    237.0000     13.7905
+  ('EAM_down', 'v_(12.5358,2.9491|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,2.9491|7.4279)')    237.0000     13.7905
+  ('EAM_down', 'v_(9.7208,2.9491|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,2.9491|7.8356)')    237.0000     23.4821
+  ('EAM_down', 'v_(12.5879,2.9491|7.8356)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.5358,2.6374|8.3053)')    239.0000     13.7905
+  ('EAM_down', 'v_(12.5358,2.6374|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0861|8.3053)')    237.0000     23.4821
+  ('EAM_down', 'v_(12.5358,3.0861|8.3053)')    239.0000      0.6390
+  ('EAM_up', 'v_(15.7889,3.0861|8.3053)')    227.5000     13.7905
+  ('EAM_down', 'v_(15.7889,3.0861|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,3.0861|8.3053)')    239.0000     13.7905
+  ('EAM_down', 'v_(9.7208,3.0861|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0755|6.7206)')    237.0000     23.4821
+  ('EAM_down', 'v_(12.5358,3.0755|6.7206)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.5358,2.6374|6.7206)')    239.0000     13.7905
+  ('EAM_down', 'v_(12.5358,2.6374|6.7206)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,2.9491|6.7206)')    238.0000     20.2516
+  ('EAM_down', 'v_(12.5358,2.9491|6.7206)')    239.0000     -0.9652
+  ('EAM_up', 'v_(12.0222,2.9491|6.7206)')    237.0000     23.4821
+  ('EAM_down', 'v_(12.0222,2.9491|6.7206)')    239.0000      0.6390
+  ('EAM_up', 'v_(15.7889,2.9491|7.8356)')    239.0000     13.7905
+  ('EAM_down', 'v_(15.7889,2.9491|7.8356)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,2.9491|6.7206)')    239.0000     13.7905
+  ('EAM_down', 'v_(15.7889,2.9491|6.7206)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,2.9491|8.3053)')    239.0000     13.7905
+  ('EAM_down', 'v_(15.7889,2.9491|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,3.0861|8.3053)')    227.0000     23.4821
+  ('EAM_down', 'v_(12.0222,3.0861|8.3053)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.5358,3.0861|6.7206)')    237.0000     33.1737
+  ('EAM_down', 'v_(12.5358,3.0861|6.7206)')    239.0000      5.4516
+  ('EAM_up', 'v_(12.5879,2.9491|8.3053)')    237.0000     33.1737
+  ('EAM_down', 'v_(12.5879,2.9491|8.3053)')    239.0000      5.4516
+  ('EAM_up', 'v_(12.5879,3.0861|8.3053)')    227.0000     23.4821
+  ('EAM_down', 'v_(12.5879,3.0861|8.3053)')    239.0000      0.6390
+  ('EAM_up', 'v_(12.5879,2.9491|6.7206)')    237.0000     33.1737
+  ('EAM_down', 'v_(12.5879,2.9491|6.7206)')    239.0000      5.4516
+  ('EAM_up', 'v_(12.5879,3.0755|8.3053)')    227.0000     23.4821
+  ('EAM_down', 'v_(12.5879,3.0755|8.3053)')    239.0000      0.6390
+  ('EAM_up', 'v_(15.7889,3.0844|8.7084)')    227.5000     13.7905
+  ('EAM_down', 'v_(15.7889,3.0844|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,3.0844|6.7206)')    239.0000     13.7905
+  ('EAM_down', 'v_(15.7889,3.0844|6.7206)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,2.9491|8.7084)')    239.0000     13.7905
+  ('EAM_down', 'v_(15.7889,2.9491|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,2.9491|7.4279)')    239.0000     13.7905
+  ('EAM_down', 'v_(15.7889,2.9491|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0844|7.4279)')    239.0000     13.7905
+  ('EAM_down', 'v_(12.5358,3.0844|7.4279)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,3.0844|6.7206)')    239.0000     13.7905
+  ('EAM_down', 'v_(9.7208,3.0844|6.7206)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5358,3.0844|6.7206)')    239.0000     13.7905
+  ('EAM_down', 'v_(12.5358,3.0844|6.7206)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,2.6374|6.7206)')    239.0000     13.7905
+  ('EAM_down', 'v_(9.7208,2.6374|6.7206)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,2.6374|8.7084)')    239.0000     13.7905
+  ('EAM_down', 'v_(15.7889,2.6374|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(9.7208,2.9491|6.7206)')    239.0000     13.7905
+  ('EAM_down', 'v_(9.7208,2.9491|6.7206)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,3.0844|8.7084)')    216.0000     13.7905
+  ('EAM_down', 'v_(12.5879,3.0844|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,3.0755|8.7084)')    216.0000     13.7905
+  ('EAM_down', 'v_(15.7889,3.0755|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,3.0844|8.3053)')    216.0000     13.7905
+  ('EAM_down', 'v_(12.5879,3.0844|8.3053)')    239.0000     -4.1737
+  ('EAM_up', 'v_(15.7889,3.0861|8.7084)')    216.0000     13.7905
+  ('EAM_down', 'v_(15.7889,3.0861|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.0222,3.0861|8.7084)')    216.0000     13.7905
+  ('EAM_down', 'v_(12.0222,3.0861|8.7084)')    239.0000     -4.1737
+  ('EAM_up', 'v_(12.5879,3.0844|7.8356)')    216.0000     13.7905
+  ('EAM_down', 'v_(12.5879,3.0844|7.8356)')    239.0000     -4.1737
+
+==================================================================================
+
+[PH-SGE] Final state written to: ph_sge_runs/5438/final_state.pkl

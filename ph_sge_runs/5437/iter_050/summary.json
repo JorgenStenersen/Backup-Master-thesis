@@ -1,0 +1,19 @@
+{
+  "iteration": 50,
+  "mode": "augmented",
+  "bundles_total": 10,
+  "bundles_solved": 10,
+  "bundles_missing": 0,
+  "elapsed_seconds": 78.01543955877423,
+  "objective_min": -4839058.8846588135,
+  "objective_max": 1945314.8946914673,
+  "objective_mean": -1170.96547164917,
+  "objective_std": 2040789.70121731,
+  "start_utc": "2026-03-16T14:46:24.096458+00:00",
+  "end_utc": "2026-03-16T14:47:42.111910+00:00",
+  "gap": 8.009549390048033,
+  "alpha": 12800.0,
+  "adaptive_alpha": true,
+  "tau": 2.0,
+  "mu": 10.0
+}

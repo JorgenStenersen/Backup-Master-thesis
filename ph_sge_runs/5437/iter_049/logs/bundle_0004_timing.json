@@ -1,0 +1,15 @@
+{
+  "iteration": 49,
+  "mode": "augmented",
+  "bundle_index": 4,
+  "status": "ok",
+  "error": "",
+  "start_utc": "2026-03-16T14:46:04.922470+00:00",
+  "end_utc": "2026-03-16T14:46:11.832677+00:00",
+  "elapsed_seconds": 6.910187222063541,
+  "hostname": "compute-1-9.local",
+  "pid": 56922,
+  "gurobi_threads": 1,
+  "sge_job_id": "5437",
+  "sge_task_id": "undefined"
+}

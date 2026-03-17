@@ -1,0 +1,20 @@
+{
+  "iteration": 49,
+  "mode": "augmented",
+  "bundles_total": 10,
+  "bundles_solved": 10,
+  "bundles_missing": 0,
+  "elapsed_seconds": 11.112152572721243,
+  "gurobi_threads_per_bundle": 1,
+  "objective_min": -24255220.675842285,
+  "objective_max": 9666499.538482666,
+  "objective_mean": -18333.840838623048,
+  "objective_std": 10225749.05272071,
+  "start_utc": "2026-03-16T15:29:14.658162+00:00",
+  "end_utc": "2026-03-16T15:29:25.770328+00:00",
+  "gap": 8.040753568278522,
+  "alpha": 25600.0,
+  "adaptive_alpha": true,
+  "tau": 2.0,
+  "mu": 10.0
+}
