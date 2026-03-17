@@ -25,5 +25,3 @@ __pycache__/
 results/
 
 ph_sge_runs/
-*.json
-*.out
