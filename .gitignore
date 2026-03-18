@@ -26,3 +26,6 @@ results/
 
 ph_sge_runs/
 ph_local_runs/
+
+
+*.sh
