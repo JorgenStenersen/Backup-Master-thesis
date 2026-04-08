@@ -9,12 +9,12 @@ import os
 
 if __name__ == "__main__":
 
-    #mode = "extensive_form"
-    mode = "progressive_hedging"
+    mode = "extensive_form"
+    #mode = "progressive_hedging"
 
     path = "./input_data_10.csv"
-    time_str = "2025-10-09 21:00:00+00:00"
-    n = 5
+    time_str = "2025-06-10 16:00:00+00:00"
+    n = 4
     verbose = True
     seed = 30
     #number_of_runs = 20
@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # --- Progressive Hedging: solve bundles ---
     n_per_bundle = 3
-    num_bundles = 50
+    num_bundles = 10
     alpha = 100
     epsilon = 1
     adaptive_alpha = True
