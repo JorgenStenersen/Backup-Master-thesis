@@ -1,10 +1,26 @@
-import pandas as pd
-import numpy as np
-import pyarrow
-import fastparquet
+import json
 import os
 from datetime import datetime
+from pathlib import Path
+
+import fastparquet
+import numpy as np
+import pandas as pd
+import pyarrow
+
 import src.utils as utils
+
+REDUCTION_INPUT_ROOT = Path("scenred_backred") / "updated_data_26"
+REDUCTION_OUTPUT_ROOT = Path("scenred_backred") / "reduced_data_26"
+REDUCTION_INPUT_FILES = {
+    "dayahead_forecasts.parquet": REDUCTION_INPUT_ROOT / "dayahead" / "dayahead_forecasts_PT1H.parquet",
+    "imbalance_forecasts.parquet": REDUCTION_INPUT_ROOT / "imbalance" / "imbalance_forecasts_PT1H.parquet",
+    "mfrr_cm_down_forecasts.parquet": REDUCTION_INPUT_ROOT / "mfrr_cm_down" / "mfrr_cm_down_forecasts_PT1H.parquet",
+    "mfrr_cm_up_forecasts.parquet": REDUCTION_INPUT_ROOT / "mfrr_cm_up" / "mfrr_cm_up_forecasts_PT1H.parquet",
+    "mfrr_eam_down_forecasts.parquet": REDUCTION_INPUT_ROOT / "mfrr_eam_down" / "mfrr_eam_down_forecasts_PT1H.parquet",
+    "mfrr_eam_up_forecasts.parquet": REDUCTION_INPUT_ROOT / "mfrr_eam_up" / "mfrr_eam_up_forecasts_PT1H.parquet",
+    "production_forecasts.parquet": REDUCTION_INPUT_ROOT / "production" / "production_forecasts_PT1H.parquet",
+}
 
 
 def load_parameters_from_csv(path):
@@ -67,6 +83,14 @@ def _to_utc_datetime(series: pd.Series) -> pd.Series:
     Convert int timestamps (seconds or ms since epoch) to UTC datetime.
     Tries to auto-detect unit based on magnitude.
     """
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return pd.to_datetime(series, utc=True, errors="coerce")
+
+    if pd.api.types.is_object_dtype(series):
+        parsed = pd.to_datetime(series, utc=True, errors="coerce")
+        if not parsed.isna().all():
+            return parsed
+
     s = series.dropna()
     if s.empty:
         # Fallback, assume ms
@@ -76,6 +100,225 @@ def _to_utc_datetime(series: pd.Series) -> pd.Series:
     # crude threshold: >1e11 ~ ms since 1970; <1e11 ~ seconds
     unit = "ms" if median_abs > 1e11 else "s"
     return pd.to_datetime(series, unit=unit, utc=True)
+
+
+def _to_datetime_preserve_tz(series: pd.Series) -> pd.Series:
+    if pd.api.types.is_datetime64tz_dtype(series):
+        return series
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return pd.to_datetime(series, errors="coerce")
+    if pd.api.types.is_object_dtype(series):
+        parsed = pd.to_datetime(series, errors="coerce")
+        if not parsed.isna().all():
+            return parsed
+    return _to_utc_datetime(series)
+
+
+def _extract_scenario_columns(frame: pd.DataFrame) -> list[str]:
+    scenario_columns: list[str] = []
+    for column in frame.columns:
+        try:
+            int(str(column))
+        except Exception:
+            continue
+        scenario_columns.append(str(column))
+    return sorted(scenario_columns, key=lambda value: int(value))
+
+
+def _load_forecast_row_from_parquet(
+    file_path: str | Path,
+    target_time: pd.Timestamp,
+    area: str,
+    park: str,
+    scenario_columns: list[str] | None = None,
+) -> list[float] | None:
+    file_path = Path(file_path)
+    if not file_path.exists():
+        return None
+
+    df = pd.read_parquet(file_path)
+    df = _reset_if_time_in_index(df)
+
+    if "prediction_for" not in df.columns:
+        return None
+
+    df = df.copy()
+    df["prediction_for_dt"] = _to_datetime_preserve_tz(df["prediction_for"])
+
+    prediction_tz = df["prediction_for_dt"].dt.tz
+    if prediction_tz is not None:
+        target_match = target_time.tz_convert(prediction_tz)
+    else:
+        target_match = target_time.tz_convert(None)
+
+    mask = df["prediction_for_dt"] == target_match
+
+    if "area" in df.columns:
+        mask &= df["area"] == area
+    if "park" in df.columns:
+        mask &= df["park"] == park
+
+    df_match = df.loc[mask]
+    if df_match.empty:
+        dt_series = df["prediction_for_dt"].dropna()
+        if not dt_series.empty:
+            mask = (
+                dt_series.dt.date == target_match.date()
+            ) & (
+                dt_series.dt.hour == target_match.hour
+            )
+            df_match = df.loc[mask]
+
+    if df_match.empty and prediction_tz is not None:
+        # fallback: match by wall-clock time without timezone conversion
+        naive_series = df["prediction_for_dt"].dt.tz_convert(None)
+        target_naive = target_time.tz_convert(None)
+        mask = naive_series == target_naive
+        df_match = df.loc[mask]
+    if df_match.empty:
+        return None
+
+    if "created_at" in df_match.columns:
+        df_match = df_match.sort_values("created_at").head(1)
+    else:
+        df_match = df_match.head(1)
+
+    if scenario_columns is None:
+        scenario_columns = _extract_scenario_columns(df_match)
+    else:
+        scenario_columns = [col for col in scenario_columns if col in df_match.columns]
+
+    if not scenario_columns:
+        return None
+
+    row = df_match.iloc[0]
+    return row[scenario_columns].astype(float).tolist()
+
+
+def load_probabilities_metadata(path: str | Path) -> dict:
+    """
+    Load scenario-reduction probability metadata JSON and normalize probabilities.
+
+    Expected fields include: date, hour, input_scenarios, reduced_scenarios,
+    kept_columns_original, output_columns, probabilities.
+    """
+    metadata_path = Path(path)
+    with metadata_path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+
+    probabilities = np.asarray(payload.get("probabilities", []), dtype=float)
+    if probabilities.size == 0:
+        raise ValueError(f"No probabilities found in {metadata_path}")
+
+    total_probability = float(probabilities.sum())
+    if not np.isclose(total_probability, 1.0):
+        probabilities = probabilities / total_probability
+
+    payload["probabilities"] = probabilities.tolist()
+    return payload
+
+
+def load_probabilities_for_slice(
+    base_dir: str | Path,
+    stem: str,
+    date: str,
+    hour: int,
+) -> dict:
+    """
+    Load probability metadata for a single date/hour slice.
+
+    base_dir: root containing the probabilities directory.
+    stem: subfolder under probabilities (e.g., "dayahead_forecasts").
+    date: YYYY-MM-DD string.
+    hour: 0-23 integer.
+    """
+    base_path = Path(base_dir)
+    metadata_path = (
+        base_path
+        / "probabilities"
+        / stem
+        / date
+        / f"hour_{int(hour):02d}.json"
+    )
+    if not metadata_path.exists():
+        raise FileNotFoundError(f"Missing probabilities metadata: {metadata_path}")
+
+    return load_probabilities_metadata(metadata_path)
+
+
+def _ensure_reduced_forecast_slice(
+    filename: str,
+    target_time: pd.Timestamp,
+    date_str: str,
+    hour: int,
+    target_scenarios: int,
+    area: str,
+    park: str,
+) -> tuple[list[float], list[float]]:
+    reduced_parquet = REDUCTION_OUTPUT_ROOT / filename
+    metadata_path = (
+        REDUCTION_OUTPUT_ROOT
+        / "probabilities"
+        / Path(filename).stem
+        / date_str
+        / f"hour_{hour:02d}.json"
+    )
+
+    needs_reduction = not metadata_path.exists() or not reduced_parquet.exists()
+    metadata: dict | None = None
+
+    if not needs_reduction:
+        metadata = load_probabilities_metadata(metadata_path)
+        reduced_count = metadata.get("reduced_scenarios")
+        input_count = metadata.get("input_scenarios")
+        if reduced_count is not None:
+            expected = int(target_scenarios)
+            if input_count is not None:
+                expected = min(int(target_scenarios), int(input_count))
+            if int(reduced_count) != expected:
+                needs_reduction = True
+
+    if needs_reduction:
+        input_path = REDUCTION_INPUT_FILES.get(filename)
+        if input_path is None or not Path(input_path).exists():
+            raise FileNotFoundError(
+                f"Missing reduction input parquet for {filename}: {input_path}"
+            )
+        from scenred_backred.scenred import backwards_reduction
+
+        backwards_reduction.reduce_parquet_file(
+            input_path=Path(input_path),
+            output_root=REDUCTION_OUTPUT_ROOT,
+            target_scenarios=target_scenarios,
+            filter_date=date_str,
+            filter_hour=hour,
+        )
+
+    if not metadata_path.exists():
+        raise FileNotFoundError(f"Missing probabilities metadata: {metadata_path}")
+
+    metadata = load_probabilities_metadata(metadata_path)
+    output_columns = metadata.get("output_columns")
+    reduced_values = _load_forecast_row_from_parquet(
+        reduced_parquet,
+        target_time=target_time,
+        area=area,
+        park=park,
+        scenario_columns=output_columns,
+    )
+    if reduced_values is None:
+        raise ValueError(f"No reduced forecast rows found in {reduced_parquet} for {target_time}")
+
+    probabilities = metadata.get("probabilities")
+    if probabilities is None:
+        raise ValueError(f"Missing probabilities in {metadata_path}")
+    if len(probabilities) != len(reduced_values):
+        raise ValueError(
+            "Probabilities length does not match reduced scenarios "
+            f"in {metadata_path} (probs={len(probabilities)}, values={len(reduced_values)})"
+        )
+
+    return reduced_values, probabilities
 
 
 def load_market_data(
@@ -111,8 +354,6 @@ def load_market_data(
         "production_forecasts.parquet": "production_forecasts",
         "production.parquet": "production",
     }
-
-    horizon_cols = [str(i) for i in range(50)]
 
     for filename, var_name in file_mapping.items():
         file_path = os.path.join(raw_path, filename)
@@ -162,14 +403,14 @@ def load_market_data(
                 df_match = df_match.head(1)
                 print("No created_at column; using first row.")
 
-            cols_present = [c for c in horizon_cols if c in df_match.columns]
-            if not cols_present:
-                print(f"[WARNING] No 0..49 columns in {filename}")
+            scenario_columns = _extract_scenario_columns(df_match)
+            if not scenario_columns:
+                print(f"[WARNING] No scenario columns in {filename}")
                 results[var_name] = None
                 continue
 
             row = df_match.iloc[0]
-            results[var_name] = row[cols_present].astype(float).tolist()
+            results[var_name] = row[scenario_columns].astype(float).tolist()
 
         # --- Realized-style files (prices & production) ---
         elif "time" in df.columns:
@@ -230,14 +471,42 @@ def load_mmo_data(path):
 
     print(df.head(6))
 
-def load_parameters_from_parquet(time_str: str, scenarios: int, seed=None):
+def load_parameters_from_parquet(time_str: str, scenarios: int, seed=None, use_reduced_scenarios: bool = True):
     print(f"\nLoading market data for time: {time_str}")
+    target_time = pd.to_datetime(time_str, utc=True)
+    date_str = target_time.strftime("%Y-%m-%d")
+    hour = int(target_time.hour)
+
     data = load_market_data(
         time_str=time_str,
         raw_path="data",
         area="NO3",
         park="roan",
     )
+
+    probabilities: dict[str, list[float]] = {}
+    if use_reduced_scenarios:
+        forecast_files = {
+            "mfrr_cm_up_forecasts.parquet": ("mfrr_cm_up_forecasts", "CM_up"),
+            "mfrr_cm_down_forecasts.parquet": ("mfrr_cm_down_forecasts", "CM_down"),
+            "dayahead_forecasts.parquet": ("dayahead_forecasts", "DA"),
+            "mfrr_eam_up_forecasts.parquet": ("mfrr_eam_up_forecasts", "EAM_up"),
+            "mfrr_eam_down_forecasts.parquet": ("mfrr_eam_down_forecasts", "EAM_down"),
+            "production_forecasts.parquet": ("production_forecasts", "wind_speed"),
+        }
+
+        for filename, (var_name, input_key) in forecast_files.items():
+            reduced_values, reduced_probs = _ensure_reduced_forecast_slice(
+                filename=filename,
+                target_time=target_time,
+                date_str=date_str,
+                hour=hour,
+                target_scenarios=scenarios,
+                area="NO3",
+                park="roan",
+            )
+            data[var_name] = reduced_values
+            probabilities[input_key] = reduced_probs
 
     # Extract correct lists
     CM_up      = data["mfrr_cm_up_forecasts"]
@@ -251,8 +520,18 @@ def load_parameters_from_parquet(time_str: str, scenarios: int, seed=None):
     for i in range(len(EAM_down)):
         EAM_down[i] = -EAM_down[i]
 
-    # We have added seed to be able to generate the same random numbers
-    CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices = utils.select_possible_realizations(scenarios, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed)
+    if probabilities:
+        CM_up_sel = CM_up
+        CM_down_sel = CM_down
+        DA_sel = DA
+        EAM_up_sel = EAM_up
+        EAM_down_sel = EAM_down
+        wind_speed_sel = wind_speed
+    else:
+        # We have added seed to be able to generate the same random numbers
+        CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, _ = utils.select_possible_realizations(
+            scenarios, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed
+        )
 
     input_data = {
         "CM_up": CM_up_sel,
@@ -260,8 +539,10 @@ def load_parameters_from_parquet(time_str: str, scenarios: int, seed=None):
         "DA": DA_sel,
         "EAM_up": EAM_up_sel,
         "EAM_down": EAM_down_sel,
-        "wind_speed": wind_speed_sel
+        "wind_speed": wind_speed_sel,
     }
+    if probabilities:
+        input_data["probabilities"] = probabilities
 
     return input_data
 
@@ -450,7 +731,9 @@ def get_bundle_data(input_data: dict, n_per_bundle: int, seed=None):
     EAM_down   = input_data["EAM_down"]
     wind_speed = input_data["wind_speed"]
 
-    CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices = utils.select_possible_realizations_for_bundle(n_per_bundle, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed)
+    CM_up_sel, CM_down_sel, DA_sel, EAM_up_sel, EAM_down_sel, wind_speed_sel, picked_scenario_indices = utils.select_possible_realizations_for_bundle(
+        n_per_bundle, CM_up, CM_down, DA, EAM_up, EAM_down, wind_speed, seed
+    )
 
     bundle_data = {
         "CM_up": CM_up_sel,
@@ -461,5 +744,33 @@ def get_bundle_data(input_data: dict, n_per_bundle: int, seed=None):
         "wind_speed": wind_speed_sel,
         # "picked_scenario_indices": picked_scenario_indices --- IGNORE ---
     }
+
+    if "probabilities" in input_data:
+        prob_source = input_data["probabilities"]
+        if picked_scenario_indices:
+            cm_up_indices = [idx[0] for idx in picked_scenario_indices]
+            cm_down_indices = [idx[1] for idx in picked_scenario_indices]
+            da_indices = [idx[2] for idx in picked_scenario_indices]
+            eam_up_indices = [idx[3] for idx in picked_scenario_indices]
+            eam_down_indices = [idx[4] for idx in picked_scenario_indices]
+            wind_indices = [idx[5] for idx in picked_scenario_indices]
+
+            def pick_probs(values, indices):
+                if not values:
+                    return [1.0 / len(indices) for _ in indices]
+                selected = [values[i] for i in indices]
+                total = float(sum(selected))
+                if total == 0:
+                    return [1.0 / len(selected) for _ in selected]
+                return [float(value) / total for value in selected]
+
+            bundle_data["probabilities"] = {
+                "CM_up": pick_probs(prob_source.get("CM_up", []), cm_up_indices),
+                "CM_down": pick_probs(prob_source.get("CM_down", []), cm_down_indices),
+                "DA": pick_probs(prob_source.get("DA", []), da_indices),
+                "EAM_up": pick_probs(prob_source.get("EAM_up", []), eam_up_indices),
+                "EAM_down": pick_probs(prob_source.get("EAM_down", []), eam_down_indices),
+                "wind_speed": pick_probs(prob_source.get("wind_speed", []), wind_indices),
+            }
     
     return bundle_data
