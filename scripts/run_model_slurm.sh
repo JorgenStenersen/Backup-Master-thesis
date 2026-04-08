@@ -3,7 +3,7 @@
 #$ -cwd
 #$ -j y
 #$ -o ph_bidding_$JOB_ID.out
-#$ -pe smp 10
+#$ -pe smp 64
 #$ -l h_rt=12:00:00
 
 set -euo pipefail
@@ -52,9 +52,9 @@ python -c "import numpy, pandas, pyarrow, fastparquet, gurobipy; print(f'deps ok
 # ----- Progressive Hedging runtime config -----
 # Override these with environment variables at submit time if needed.
 TIME_STR="${TIME_STR:-2025-10-09 21:00:00+00:00}"
-N_TOTAL="${N_TOTAL:-5}"
+N_TOTAL="${N_TOTAL:-20}"
 N_PER_BUNDLE="${N_PER_BUNDLE:-3}"
-NUM_BUNDLES="${NUM_BUNDLES:-10}"
+NUM_BUNDLES="${NUM_BUNDLES:-100}"
 SEED="${SEED:-30}"
 ALPHA="${ALPHA:-100}"
 EPSILON="${EPSILON:-1}"
