@@ -284,7 +284,7 @@ def _ensure_reduced_forecast_slice(
             raise FileNotFoundError(
                 f"Missing reduction input parquet for {filename}: {input_path}"
             )
-        from scenred_backred.scenred import backwards_reduction
+        from scenred_backred import backwards_reduction
 
         backwards_reduction.reduce_parquet_file(
             input_path=Path(input_path),
