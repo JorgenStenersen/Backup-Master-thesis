@@ -3,6 +3,10 @@
 # ------------------------
 data/
 data/processed/
+reduced_data_26/
+figures_test/
+ph_local_runs/
+ph_sge_runs/
 *.csv
 *.tsv
 *.parquet
@@ -14,6 +18,8 @@ data/processed/
 *.pickle
 *.joblib
 *.zip
+
+bounds_summary_2026.csv
 
 # Ignore env
 thesis-env/

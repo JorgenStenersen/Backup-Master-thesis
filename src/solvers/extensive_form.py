@@ -1,3 +1,5 @@
+from gurobipy import GRB
+
 import src.read as read
 import src.utils as utils
 from src.model import build_model, initialize_run
@@ -18,6 +20,13 @@ def run_model(time_str, n, seed=None, verbose=True):
 
     # --- OPTIMIZE MODEL ---
     model_container.model.optimize()
+
+    if model_container.model.Status in (GRB.INFEASIBLE, GRB.INF_OR_UNBD):
+        # Capture minimal IIS info to debug infeasibility.
+        model_container.model.computeIIS()
+        model_container.model.write("infeasible.ilp")
+        print("[ERROR] Model infeasible or unbounded. IIS written to infeasible.ilp")
+        return
     
     
     print(f"Model optimized in {model_container.model.Runtime:.2f} seconds.")
