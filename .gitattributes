@@ -1,1 +1,22 @@
+* text=auto eol=lf
 *.sh text eol=lf
+
+*.7z binary
+*.bz2 binary
+*.gif binary
+*.gz binary
+*.ico binary
+*.jar binary
+*.jpeg binary
+*.jpg binary
+*.pdf binary
+*.png binary
+*.pyc binary
+*.pyo binary
+*.so binary
+*.tar binary
+*.tgz binary
+*.tif binary
+*.tiff binary
+*.war binary
+*.zip binary
