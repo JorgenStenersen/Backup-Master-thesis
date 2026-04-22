@@ -11,12 +11,11 @@ if __name__ == "__main__":
     mode = "extensive_form"
     #mode = "progressive_hedging"
 
-    path = "./input_data_10.csv"
     time_str = "2025-04-04 08:00:00+00:00"
     n = 4
     verbose = True
     seed = 30
-    #number_of_runs = 20
+
     
     if mode == "extensive_form":
         extensive_form.run_model(time_str, n, seed=seed, verbose=verbose)
