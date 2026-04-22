@@ -7,13 +7,13 @@ Outputs a CSV with timing and objective info for the extensive run and each
 PH configuration.
 
 Usage examples:
-    python experiments/run_ph_bench.py \
-        --time-str "2025-01-15 16:00:00+00:00" \
-        --time-str "2025-02-15 16:00:00+00:00" \
-        --time-str "2025-03-15 16:00:00+00:00" \
-        --time-str "2025-04-15 16:00:00+00:00" \
-        --extensive-n 20 \
-        --combo 20:3:10 --combo 20:5:4 \
+    python experiments.run_ph_bench \
+        --time-str "2025-04-04 08:00:00+00:00" \
+        --time-str "2025-06-10 20:00:00+00:00" \
+        --time-str "2025-08-20 13:00:00+00:00" \
+        --time-str "2025-12-15 05:00:00+00:00" \
+        --extensive-n 3 \
+        --combo 3:1:3 --combo 3:1:6 \
         --out results/ph_bench.csv
 
 Each --combo must be of the form n_total:n_per_bundle:num_bundles. Max 10 combos.
@@ -61,7 +61,9 @@ def _resolve_combo_index(explicit_idx: int | None) -> int | None:
     if explicit_idx is not None:
         return explicit_idx
     if "SGE_TASK_ID" in os.environ:
-        return int(os.environ["SGE_TASK_ID"]) - 1
+        sge_task_id = os.environ.get("SGE_TASK_ID", "")
+        if sge_task_id and sge_task_id != "undefined":
+            return int(sge_task_id) - 1
     if "SLURM_ARRAY_TASK_ID" in os.environ:
         return int(os.environ["SLURM_ARRAY_TASK_ID"]) - 1
     return None
