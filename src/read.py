@@ -8,6 +8,9 @@ import numpy as np
 import pandas as pd
 import pyarrow
 
+from scenred_backred import backwards_reduction
+import shutil
+
 import src.utils as utils
 
 REDUCTION_INPUT_ROOT = Path("scenred_backred") / "updated_data_26"
@@ -255,7 +258,13 @@ def _ensure_reduced_forecast_slice(
     area: str,
     park: str,
 ) -> tuple[list[float], list[float]]:
+
+
     reduced_parquet = REDUCTION_OUTPUT_ROOT / filename
+
+    if reduced_parquet.parent.exists():
+        shutil.rmtree(REDUCTION_OUTPUT_ROOT)
+
     metadata_path = (
         REDUCTION_OUTPUT_ROOT
         / "probabilities"
@@ -264,35 +273,21 @@ def _ensure_reduced_forecast_slice(
         / f"hour_{hour:02d}.json"
     )
 
-    needs_reduction = not metadata_path.exists() or not reduced_parquet.exists()
     metadata: dict | None = None
 
-    if not needs_reduction:
-        metadata = load_probabilities_metadata(metadata_path)
-        reduced_count = metadata.get("reduced_scenarios")
-        input_count = metadata.get("input_scenarios")
-        if reduced_count is not None:
-            expected = int(target_scenarios)
-            if input_count is not None:
-                expected = min(int(target_scenarios), int(input_count))
-            if int(reduced_count) != expected:
-                needs_reduction = True
-
-    if needs_reduction:
-        input_path = REDUCTION_INPUT_FILES.get(filename)
-        if input_path is None or not Path(input_path).exists():
-            raise FileNotFoundError(
-                f"Missing reduction input parquet for {filename}: {input_path}"
-            )
-        from scenred_backred import backwards_reduction
-
-        backwards_reduction.reduce_parquet_file(
-            input_path=Path(input_path),
-            output_root=REDUCTION_OUTPUT_ROOT,
-            target_scenarios=target_scenarios,
-            filter_date=date_str,
-            filter_hour=hour,
+    input_path = REDUCTION_INPUT_FILES.get(filename)
+    if input_path is None or not Path(input_path).exists():
+        raise FileNotFoundError(
+            f"Missing reduction input parquet for {filename}: {input_path}"
         )
+
+    backwards_reduction.reduce_parquet_file(
+        input_path=Path(input_path),
+        output_root=REDUCTION_OUTPUT_ROOT,
+        target_scenarios=target_scenarios,
+        filter_date=date_str,
+        filter_hour=hour,
+    )
 
     if not metadata_path.exists():
         raise FileNotFoundError(f"Missing probabilities metadata: {metadata_path}")
@@ -306,6 +301,7 @@ def _ensure_reduced_forecast_slice(
         park=park,
         scenario_columns=output_columns,
     )
+
     if reduced_values is None:
         raise ValueError(f"No reduced forecast rows found in {reduced_parquet} for {target_time}")
 
