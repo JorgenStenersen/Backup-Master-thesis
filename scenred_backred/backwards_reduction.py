@@ -430,15 +430,15 @@ if __name__ == "__main__":
 How to run:
 
 To run on one file:
-python scenred_backred/scenred/backwards_reduction.py --file scenred_backred/updated_data_26/path/to/file.parquet --target-scenarios 20 --output-root scenred_backred/reduced_data_26
+python scenred_backred/backwards_reduction.py --file scenred_backred/updated_data_26/path/to/file.parquet --target-scenarios 20 --output-root scenred_backred/reduced_data_26
 
 Example dayahead:
-python scenred_backred/scenred/backwards_reduction.py --file scenred_backred/updated_data_26/dayahead/dayahead_forecasts_PT1H.parquet --target-scenarios 20 --output-root scenred_backred/reduced_data_26
+python scenred_backred/backwards_reduction.py --file scenred_backred/updated_data_26/dayahead/dayahead_forecasts_PT1H.parquet --target-scenarios 20 --output-root scenred_backred/reduced_data_26
 
 Example with date/hour filter:
-python scenred_backred/scenred/backwards_reduction.py --file scenred_backred/updated_data_26/dayahead/dayahead_forecasts_PT1H.parquet --target-scenarios 20 --output-root scenred_backred/reduced_data_26 --date 2025-01-01 --hour 0
+python scenred_backred/backwards_reduction.py --file scenred_backred/updated_data_26/dayahead/dayahead_forecasts_PT1H.parquet --target-scenarios 20 --output-root scenred_backred/reduced_data_26 --date 2025-01-01 --hour 0
 
 To run on all parquet files under updated_data_26:
-python scenred_backred/scenred/backwards_reduction.py --input-root scenred_backred/updated_data_26 --target-scenarios 20 --output-root scenred_backred/reduced_data_26
+python scenred_backred/backwards_reduction.py --input-root scenred_backred/updated_data_26 --target-scenarios 20 --output-root scenred_backred/reduced_data_26
 
 --------'''
