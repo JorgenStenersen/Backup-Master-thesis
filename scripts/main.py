@@ -13,8 +13,8 @@ if __name__ == "__main__":
     #mode = "progressive_hedging"
 
     path = "./input_data_10.csv"
-    time_str = "2025-04-04 08:00:00+00:00"
-    n = 4
+    time_str = "2025-12-16 05:00:00+00:00"
+    n = 7
     verbose = True
     seed = 30
     #number_of_runs = 20
@@ -29,8 +29,8 @@ if __name__ == "__main__":
     epsilon = 2
     adaptive_alpha = True
     tau = 2.0
-    mu = 10.0
-    max_iter = 50
+    mu =5.0
+    max_iter = 100
 
     if mode == "progressive_hedging":
         total_cores = max(1, os.cpu_count() or 1)
