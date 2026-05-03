@@ -1,4 +1,7 @@
 import math
+from datetime import datetime, timezone
+from pathlib import Path
+
 import src.read as read
 
 import gurobipy as gp
@@ -645,9 +648,61 @@ def _gap_threshold_from_objective(objective_mean, gap_pct, epsilon):
     return scaled
 
 
+def _gap_threshold_for_iter(k, objective_mean, gap_pct, epsilon, warmup_iters=20):
+    if k < warmup_iters:
+        return epsilon
+    return _gap_threshold_from_objective(objective_mean, gap_pct, epsilon)
+
+
+def _sanitize_time_str(time_str: str) -> str:
+    safe = []
+    for ch in time_str:
+        if ch.isalnum() or ch in ("-", "_", "."):
+            safe.append(ch)
+        else:
+            safe.append("_")
+    return "".join(safe)
+
+
+def _run_stamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+
+
+def format_final_consensus(consensus) -> str:
+    """Return a formatted consensus summary string."""
+    lines = []
+    lines.append("")
+    lines.append("=" * 82)
+    lines.append("  CONVERGED CONSENSUS DECISIONS")
+    lines.append("-" * 82)
+    for stage_name, label in [("stage1", "CM  (stage 1)"),
+                               ("stage2", "DA  (stage 2)"),
+                               ("stage3", "EAM (stage 3)")]:
+        stage = consensus[stage_name]
+        if not stage:
+            continue
+        lines.append("")
+        lines.append(f"  {label}  ({len(stage)} decision(s))")
+        lines.append(f"  {'Key':>30s}  {'x':>10s}  {'r':>10s}")
+        lines.append(f"  {'':->30s}  {'':->10s}  {'':->10s}")
+        for key, vals in stage.items():
+            lines.append(f"  {str(key):>30s}  {vals['x']:>10.4f}  {vals['r']:>10.4f}")
+    lines.append("")
+    lines.append("=" * 82)
+    lines.append("")
+    return "\n".join(lines)
+
+
+def write_bidding_policy(consensus, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as handle:
+        handle.write(format_final_consensus(consensus))
+
+
 def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0, verbose=True,
                             alpha=100, epsilon=1e-2, max_iter=50, gap_pct=0.01,
-                            adaptive_alpha=True, tau=2.0, mu=10.0):
+                            adaptive_alpha=True, tau=2.0, mu=10.0,
+                            bidding_output_dir: str | Path | None = None):
     """
     Entry point for the Progressive Hedging algorithm.
 
@@ -668,6 +723,7 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
         adaptive_alpha: if True, use residual-balancing to adapt alpha each iteration
         tau:            scaling factor for alpha adjustments (default 2.0)
         mu:             threshold ratio for triggering adjustment (default 10.0)
+        bidding_output_dir: optional directory for writing a bidding policy file
 
     Returns:
         B:         list of scenario tree dicts
@@ -715,7 +771,7 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
     g = compute_convergence_gap(results, consensus, market_products)
     k = 0
     mean_obj = _objective_mean(results)
-    gap_threshold = _gap_threshold_from_objective(mean_obj, gap_pct, epsilon)
+    gap_threshold = _gap_threshold_for_iter(k, mean_obj, gap_pct, epsilon)
     effective_max_iter = min(int(max_iter), 100)
 
     if verbose:
@@ -744,7 +800,7 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
         # Step 24: Recompute convergence gap
         g = compute_convergence_gap(results, consensus, market_products)
         mean_obj = _objective_mean(results)
-        gap_threshold = _gap_threshold_from_objective(mean_obj, gap_pct, epsilon)
+        gap_threshold = _gap_threshold_for_iter(k, mean_obj, gap_pct, epsilon)
 
         # Adaptive alpha: residual-balancing
         if adaptive_alpha:
@@ -759,6 +815,14 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
         print(f"{'':->82}")
         print(f"  Terminated: {status}  (gap={g:.6f}, alpha={alpha:.4f})")
         print_final_consensus(consensus)
+
+    if bidding_output_dir is not None:
+        output_dir = Path(bidding_output_dir)
+        safe_time = _sanitize_time_str(time_str)
+        policy_path = output_dir / f"bidding_policy_pha_{safe_time}_{_run_stamp()}.txt"
+        write_bidding_policy(consensus, policy_path)
+        if verbose:
+            print(f"[PH] Bidding policy written to: {policy_path}")
 
     return B, results, consensus, W_shadow
 
@@ -787,18 +851,4 @@ def print_iteration_row(k, gap, results, alpha=None):
 
 def print_final_consensus(consensus):
     """Print a compact summary of the converged consensus decisions."""
-    print(f"\n{'':=<82}")
-    print("  CONVERGED CONSENSUS DECISIONS")
-    print(f"{'':->82}")
-    for stage_name, label in [("stage1", "CM  (stage 1)"),
-                               ("stage2", "DA  (stage 2)"),
-                               ("stage3", "EAM (stage 3)")]:
-        stage = consensus[stage_name]
-        if not stage:
-            continue
-        print(f"\n  {label}  ({len(stage)} decision(s))")
-        print(f"  {'Key':>30s}  {'x':>10s}  {'r':>10s}")
-        print(f"  {'':->30s}  {'':->10s}  {'':->10s}")
-        for key, vals in stage.items():
-            print(f"  {str(key):>30s}  {vals['x']:>10.4f}  {vals['r']:>10.4f}")
-    print(f"\n{'':=<82}\n")
+    print(format_final_consensus(consensus), end="")

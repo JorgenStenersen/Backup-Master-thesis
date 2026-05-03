@@ -114,7 +114,8 @@ def run_extensive(time_str: str, n: int, seed: int | None = None) -> dict:
 def run_ph_combo_inprocess(time_str: str, n_total: int, n_per_bundle: int, num_bundles: int,
                            seed: int = 0, alpha: float = 100.0, epsilon: float = 1e-2,
                            max_iter: int = 50, gap_pct: float = 0.01, adaptive_alpha: bool = True,
-                           tau: float = 2.0, mu: float = 10.0) -> tuple[dict, str]:
+                           tau: float = 2.0, mu: float = 10.0,
+                           bidding_output_dir: Path | None = None) -> tuple[dict, str]:
     """Run progressive hedging for one combo, measure runtime and extract objective stats."""
     start = time.perf_counter()
     status = "ok"
@@ -134,6 +135,7 @@ def run_ph_combo_inprocess(time_str: str, n_total: int, n_per_bundle: int, num_b
             adaptive_alpha=adaptive_alpha,
             tau=tau,
             mu=mu,
+            bidding_output_dir=bidding_output_dir,
         )
     except Exception as exc:  # pragma: no cover - runtime failures handled in reporting
         status = f"error: {type(exc).__name__}"
@@ -344,6 +346,7 @@ def main(argv: List[str] | None = None) -> None:
                         adaptive_alpha=bool(args.adaptive_alpha),
                         tau=args.tau,
                         mu=args.mu,
+                        bidding_output_dir=ph_work_root,
                     )
 
                 ph_metrics["time_str"] = t

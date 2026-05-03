@@ -23,10 +23,10 @@ if __name__ == "__main__":
         extensive_form.run_model(time_str, n, seed=seed, verbose=verbose)
 
     # --- Progressive Hedging: solve bundles ---
-    n_per_bundle = 3
-    num_bundles = 5
+    n_per_bundle = 2
+    num_bundles = 10
     alpha = 100
-    epsilon = 2
+    epsilon = 5
     adaptive_alpha = True
     tau = 2.0
     mu =5.0

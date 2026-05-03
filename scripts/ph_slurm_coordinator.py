@@ -18,6 +18,7 @@ from src.solvers.progressive_hedging import (
     compute_dual_residual,
     initialize_shadow_costs,
     print_final_consensus,
+    write_bidding_policy,
     print_iteration_header,
     print_iteration_row,
     update_shadow_costs,
@@ -41,6 +42,16 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _sanitize_time_str(time_str: str) -> str:
+    safe = []
+    for ch in time_str:
+        if ch.isalnum() or ch in ("-", "_", "."):
+            safe.append(ch)
+        else:
+            safe.append("_")
+    return "".join(safe)
+
+
 def _gap_threshold_from_objective(objective_mean: float | None, gap_pct: float, epsilon: float) -> float:
     if objective_mean is None:
         return epsilon
@@ -50,6 +61,13 @@ def _gap_threshold_from_objective(objective_mean: float | None, gap_pct: float, 
     if scaled <= 0.0:
         return epsilon
     return scaled
+
+
+def _gap_threshold_for_iter(iteration: int, objective_mean: float | None,
+                            gap_pct: float, epsilon: float, warmup_iters: int = 20) -> float:
+    if iteration < warmup_iters:
+        return epsilon
+    return _gap_threshold_from_objective(objective_mean, gap_pct, epsilon)
 
 
 def _run_bundle_batch(mode: str, iteration: int, num_bundles: int, static_file: Path,
@@ -232,9 +250,14 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
     consensus = compute_consensus(results, verbose=False)
     w_shadow = initialize_shadow_costs(results, consensus, alpha=alpha, verbose=False)
     gap = compute_convergence_gap(results, consensus, market_products)
-    gap_threshold = _gap_threshold_from_objective(iter_summary.get("objective_mean"), gap_pct, epsilon)
-    effective_max_iter = min(int(max_iter), 100)
     k = 0
+    gap_threshold = _gap_threshold_for_iter(
+        k,
+        iter_summary.get("objective_mean"),
+        gap_pct,
+        epsilon,
+    )
+    effective_max_iter = min(int(max_iter), 100)
 
     iter_summary.update(
         {
@@ -282,7 +305,12 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
         consensus = compute_consensus(results, verbose=False)
         w_shadow = update_shadow_costs(w_shadow, results, consensus, alpha)
         gap = compute_convergence_gap(results, consensus, market_products)
-        gap_threshold = _gap_threshold_from_objective(iter_summary.get("objective_mean"), gap_pct, epsilon)
+        gap_threshold = _gap_threshold_for_iter(
+            k,
+            iter_summary.get("objective_mean"),
+            gap_pct,
+            epsilon,
+        )
 
         if adaptive_alpha:
             dual_res = compute_dual_residual(consensus, prev_consensus, alpha)
@@ -318,6 +346,12 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
     print(f"{'':->82}")
     print(f"  Terminated: {status}  (gap={gap:.6f}, alpha={alpha:.4f})")
     print_final_consensus(consensus)
+
+    policy_dir = work_dir.parent if work_dir.name.startswith("combo_") else work_dir
+    policy_name = f"bidding_policy_pha_{_sanitize_time_str(time_str)}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt"
+    policy_path = policy_dir / policy_name
+    write_bidding_policy(consensus, policy_path)
+    print(f"[PH-SGE] Bidding policy written to: {policy_path}")
 
     _save_pickle(
         work_dir / "final_state.pkl",
