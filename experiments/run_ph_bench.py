@@ -113,8 +113,8 @@ def run_extensive(time_str: str, n: int, seed: int | None = None) -> dict:
 
 def run_ph_combo_inprocess(time_str: str, n_total: int, n_per_bundle: int, num_bundles: int,
                            seed: int = 0, alpha: float = 100.0, epsilon: float = 1e-2,
-                           max_iter: int = 50, adaptive_alpha: bool = True, tau: float = 2.0,
-                           mu: float = 10.0) -> tuple[dict, str]:
+                           max_iter: int = 50, gap_pct: float = 0.01, adaptive_alpha: bool = True,
+                           tau: float = 2.0, mu: float = 10.0) -> tuple[dict, str]:
     """Run progressive hedging for one combo, measure runtime and extract objective stats."""
     start = time.perf_counter()
     status = "ok"
@@ -130,6 +130,7 @@ def run_ph_combo_inprocess(time_str: str, n_total: int, n_per_bundle: int, num_b
             alpha=alpha,
             epsilon=epsilon,
             max_iter=max_iter,
+            gap_pct=gap_pct,
             adaptive_alpha=adaptive_alpha,
             tau=tau,
             mu=mu,
@@ -160,7 +161,7 @@ def run_ph_combo_inprocess(time_str: str, n_total: int, n_per_bundle: int, num_b
 
 def run_ph_combo_coordinator(time_str: str, n_total: int, n_per_bundle: int, num_bundles: int,
                              seed: int, alpha: float, epsilon: float, max_iter: int,
-                             adaptive_alpha: bool, tau: float, mu: float,
+                             gap_pct: float, adaptive_alpha: bool, tau: float, mu: float,
                              work_dir: Path, max_workers: int,
                              gurobi_threads_per_bundle: int) -> tuple[dict, str]:
     start = time.perf_counter()
@@ -174,6 +175,7 @@ def run_ph_combo_coordinator(time_str: str, n_total: int, n_per_bundle: int, num
         alpha=alpha,
         epsilon=epsilon,
         max_iter=max_iter,
+        gap_pct=gap_pct,
         adaptive_alpha=adaptive_alpha,
         tau=tau,
         mu=mu,
@@ -212,7 +214,7 @@ def run_ph_combo_coordinator(time_str: str, n_total: int, n_per_bundle: int, num
 def main(argv: List[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Benchmark extensive vs PH with multiple configs")
     parser.add_argument("--time-str", action="append", required=True,
-                        help="Timestamp(s) to run the benchmark for. Specify exactly 4 occurrences.")
+                        help="Timestamp(s) to run the benchmark for. Specify one or more occurrences.")
     parser.add_argument("--extensive-n", type=int, default=None, help="n for the extensive form run")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--combo", type=parse_combo, action="append",
@@ -220,6 +222,7 @@ def main(argv: List[str] | None = None) -> None:
     parser.add_argument("--out", type=str, default=None, help="Output CSV path")
     parser.add_argument("--alpha", type=float, default=100.0)
     parser.add_argument("--epsilon", type=float, default=1e-2)
+    parser.add_argument("--gap-pct", type=float, default=0.01)
     parser.add_argument("--max-iter", type=int, default=50)
     parser.add_argument("--adaptive-alpha", type=int, choices=(0, 1), default=1)
     parser.add_argument("--tau", type=float, default=2.0)
@@ -319,6 +322,7 @@ def main(argv: List[str] | None = None) -> None:
                         alpha=args.alpha,
                         epsilon=args.epsilon,
                         max_iter=args.max_iter,
+                        gap_pct=args.gap_pct,
                         adaptive_alpha=bool(args.adaptive_alpha),
                         tau=args.tau,
                         mu=args.mu,
@@ -336,6 +340,7 @@ def main(argv: List[str] | None = None) -> None:
                         alpha=args.alpha,
                         epsilon=args.epsilon,
                         max_iter=args.max_iter,
+                        gap_pct=args.gap_pct,
                         adaptive_alpha=bool(args.adaptive_alpha),
                         tau=args.tau,
                         mu=args.mu,
@@ -350,7 +355,7 @@ def main(argv: List[str] | None = None) -> None:
                     f"mean_obj={ph_metrics['objective_mean']}"
                 )
 
-    # Compute averages across the 4 time points for each unique config
+    # Compute averages across the provided time points for each unique config
     from collections import defaultdict
 
     agg = defaultdict(list)

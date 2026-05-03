@@ -3,6 +3,7 @@ import csv
 import json
 import pickle
 import time
+import math
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
@@ -38,6 +39,17 @@ def _save_json(path: Path, obj) -> None:
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _gap_threshold_from_objective(objective_mean: float | None, gap_pct: float, epsilon: float) -> float:
+    if objective_mean is None:
+        return epsilon
+    if not math.isfinite(objective_mean):
+        return epsilon
+    scaled = gap_pct * abs(objective_mean)
+    if scaled <= 0.0:
+        return epsilon
+    return scaled
 
 
 def _run_bundle_batch(mode: str, iteration: int, num_bundles: int, static_file: Path,
@@ -172,7 +184,7 @@ def _write_iteration_timing_summary(iter_dir: Path, iteration: int, num_bundles:
 
 
 def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundles: int,
-                       seed: int, alpha: float, epsilon: float, max_iter: int,
+                       seed: int, alpha: float, epsilon: float, max_iter: int, gap_pct: float,
                        adaptive_alpha: bool, tau: float, mu: float, work_dir: Path,
                        max_workers: int, gurobi_threads_per_bundle: int) -> None:
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -220,6 +232,8 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
     consensus = compute_consensus(results, verbose=False)
     w_shadow = initialize_shadow_costs(results, consensus, alpha=alpha, verbose=False)
     gap = compute_convergence_gap(results, consensus, market_products)
+    gap_threshold = _gap_threshold_from_objective(iter_summary.get("objective_mean"), gap_pct, epsilon)
+    effective_max_iter = min(int(max_iter), 100)
     k = 0
 
     iter_summary.update(
@@ -229,6 +243,8 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
             "adaptive_alpha": adaptive_alpha,
             "tau": tau,
             "mu": mu,
+            "gap_threshold": gap_threshold,
+            "gap_pct": gap_pct,
         }
     )
     iter_dir = work_dir / f"iter_{k:03d}"
@@ -246,7 +262,7 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
 
     print_iteration_row(k, gap, results, alpha=alpha)
 
-    while gap > epsilon and k < max_iter:
+    while gap > gap_threshold and k < effective_max_iter:
         k += 1
 
         results, iter_summary = _run_bundle_batch(
@@ -266,6 +282,7 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
         consensus = compute_consensus(results, verbose=False)
         w_shadow = update_shadow_costs(w_shadow, results, consensus, alpha)
         gap = compute_convergence_gap(results, consensus, market_products)
+        gap_threshold = _gap_threshold_from_objective(iter_summary.get("objective_mean"), gap_pct, epsilon)
 
         if adaptive_alpha:
             dual_res = compute_dual_residual(consensus, prev_consensus, alpha)
@@ -278,6 +295,8 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
                 "adaptive_alpha": adaptive_alpha,
                 "tau": tau,
                 "mu": mu,
+                "gap_threshold": gap_threshold,
+                "gap_pct": gap_pct,
             }
         )
         iter_dir = work_dir / f"iter_{k:03d}"
@@ -295,7 +314,7 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
 
         print_iteration_row(k, gap, results, alpha=alpha)
 
-    status = "CONVERGED" if gap <= epsilon else f"MAX ITER ({max_iter})"
+    status = "CONVERGED" if gap <= gap_threshold else f"MAX ITER ({effective_max_iter})"
     print(f"{'':->82}")
     print(f"  Terminated: {status}  (gap={gap:.6f}, alpha={alpha:.4f})")
     print_final_consensus(consensus)
@@ -330,6 +349,9 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
         "adaptive_alpha": adaptive_alpha,
         "tau": tau,
         "mu": mu,
+        "gap_threshold": gap_threshold,
+        "gap_pct": gap_pct,
+        "epsilon": epsilon,
         "iteration_summaries": iteration_summaries,
     }
     _save_json(work_dir / "run_summary.json", run_summary)
@@ -346,6 +368,7 @@ def main() -> None:
     parser.add_argument("--alpha", type=float, default=100.0)
     parser.add_argument("--epsilon", type=float, default=1e-2)
     parser.add_argument("--max-iter", type=int, default=50)
+    parser.add_argument("--gap-pct", type=float, default=0.01)
     parser.add_argument("--adaptive-alpha", type=int, default=1)
     parser.add_argument("--tau", type=float, default=2.0)
     parser.add_argument("--mu", type=float, default=10.0)
@@ -363,6 +386,7 @@ def main() -> None:
         alpha=args.alpha,
         epsilon=args.epsilon,
         max_iter=args.max_iter,
+        gap_pct=args.gap_pct,
         adaptive_alpha=bool(args.adaptive_alpha),
         tau=args.tau,
         mu=args.mu,

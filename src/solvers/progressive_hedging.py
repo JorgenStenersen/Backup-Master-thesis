@@ -627,8 +627,26 @@ def solve_bundles_augmented(B, global_bounds, W_shadow, consensus, alpha,
     return results
 
 
+def _objective_mean(results):
+    objectives = [r["objective"] for r in results if r is not None and "objective" in r]
+    if not objectives:
+        return None
+    return sum(objectives) / len(objectives)
+
+
+def _gap_threshold_from_objective(objective_mean, gap_pct, epsilon):
+    if objective_mean is None:
+        return epsilon
+    if not math.isfinite(objective_mean):
+        return epsilon
+    scaled = gap_pct * abs(objective_mean)
+    if scaled <= 0.0:
+        return epsilon
+    return scaled
+
+
 def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0, verbose=True,
-                            alpha=100, epsilon=1e-2, max_iter=50,
+                            alpha=100, epsilon=1e-2, max_iter=50, gap_pct=0.01,
                             adaptive_alpha=True, tau=2.0, mu=10.0):
     """
     Entry point for the Progressive Hedging algorithm.
@@ -644,8 +662,9 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
         seed:           base seed for bundle generation
         verbose:        print progress info
         alpha:          PH penalty parameter (initial value)
-        epsilon:        convergence tolerance
+        epsilon:        fallback convergence tolerance when objective mean is unavailable
         max_iter:       maximum number of PH iterations
+        gap_pct:        convergence threshold as a fraction of |objective_mean|
         adaptive_alpha: if True, use residual-balancing to adapt alpha each iteration
         tau:            scaling factor for alpha adjustments (default 2.0)
         mu:             threshold ratio for triggering adjustment (default 10.0)
@@ -695,6 +714,9 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
     # Step 12: Compute initial convergence gap
     g = compute_convergence_gap(results, consensus, market_products)
     k = 0
+    mean_obj = _objective_mean(results)
+    gap_threshold = _gap_threshold_from_objective(mean_obj, gap_pct, epsilon)
+    effective_max_iter = min(int(max_iter), 100)
 
     if verbose:
         print_iteration_row(k, g, results, alpha=alpha)
@@ -702,7 +724,7 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
     # ------------------------------------------------------------------
     # Steps 12-16: Iterative improvements
     # ------------------------------------------------------------------
-    while g > epsilon and k < max_iter:
+    while g > gap_threshold and k < effective_max_iter:
         # Step 13: increment iteration counter
         k += 1
 
@@ -721,6 +743,8 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
 
         # Step 24: Recompute convergence gap
         g = compute_convergence_gap(results, consensus, market_products)
+        mean_obj = _objective_mean(results)
+        gap_threshold = _gap_threshold_from_objective(mean_obj, gap_pct, epsilon)
 
         # Adaptive alpha: residual-balancing
         if adaptive_alpha:
@@ -731,7 +755,7 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
             print_iteration_row(k, g, results, alpha=alpha)
 
     if verbose:
-        status = "CONVERGED" if g <= epsilon else f"MAX ITER ({max_iter})"
+        status = "CONVERGED" if g <= gap_threshold else f"MAX ITER ({effective_max_iter})"
         print(f"{'':->82}")
         print(f"  Terminated: {status}  (gap={g:.6f}, alpha={alpha:.4f})")
         print_final_consensus(consensus)

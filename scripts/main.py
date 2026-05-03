@@ -30,6 +30,7 @@ if __name__ == "__main__":
     adaptive_alpha = True
     tau = 2.0
     mu =5.0
+    gap_pct = 0.01
     max_iter = 100
 
     if mode == "progressive_hedging":
@@ -49,6 +50,7 @@ if __name__ == "__main__":
             alpha=alpha,
             epsilon=epsilon,
             max_iter=max_iter,
+            gap_pct=gap_pct,
             adaptive_alpha=adaptive_alpha,
             tau=tau,
             mu=mu,

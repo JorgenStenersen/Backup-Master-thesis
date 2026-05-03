@@ -19,7 +19,7 @@ def _now_iso() -> str:
 
 def run_trial_and_get_elapsed(time_str: str, n_total: int, n_per_bundle: int, num_bundles: int,
                               seed: int, alpha: float, epsilon: float, max_iter: int,
-                              adaptive_alpha: bool, tau: float, mu: float,
+                              gap_pct: float, adaptive_alpha: bool, tau: float, mu: float,
                               base_work_dir: Path, max_workers: int, gurobi_threads_per_bundle: int) -> float:
     """Run a single PH experiment and return total elapsed seconds from run_summary.json.
 
@@ -39,6 +39,7 @@ def run_trial_and_get_elapsed(time_str: str, n_total: int, n_per_bundle: int, nu
             alpha=alpha,
             epsilon=epsilon,
             max_iter=max_iter,
+            gap_pct=gap_pct,
             adaptive_alpha=adaptive_alpha,
             tau=tau,
             mu=mu,
@@ -84,6 +85,7 @@ def objective_optuna(trial: "optuna.trial.Trial", args) -> float:
         alpha=alpha,
         epsilon=args.epsilon,
         max_iter=args.max_iter,
+        gap_pct=args.gap_pct,
         adaptive_alpha=adaptive_alpha,
         tau=tau,
         mu=mu,
@@ -108,6 +110,7 @@ def main(cli_args: dict | None = None):
     parser.add_argument("--num-bundles", type=int, required=True)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--epsilon", type=float, default=1e-2)
+    parser.add_argument("--gap-pct", type=float, default=0.01)
     parser.add_argument("--max-iter", type=int, default=50)
     parser.add_argument("--work-dir", type=str, default="ph_hyperopt_runs")
     parser.add_argument("--n-trials", type=int, default=20)
