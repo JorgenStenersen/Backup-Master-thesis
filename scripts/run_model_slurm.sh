@@ -54,7 +54,7 @@ python -c "import numpy, pandas, pyarrow, fastparquet, gurobipy; print(f'deps ok
 
 # ----- Progressive Hedging runtime config -----
 # Override these with environment variables at submit time if needed.
-TIME_STR="${TIME_STR:-2025-10-09 21:00:00+00:00}"
+TIME_STR="${TIME_STR:-2025-04-04 08:00:00+00:00}"
 N_TOTAL="${N_TOTAL:-20}"
 N_PER_BUNDLE="${N_PER_BUNDLE:-3}"
 NUM_BUNDLES="${NUM_BUNDLES:-100}"

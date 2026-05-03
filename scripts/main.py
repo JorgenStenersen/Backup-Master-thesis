@@ -13,8 +13,8 @@ if __name__ == "__main__":
     #mode = "progressive_hedging"
 
     path = "./input_data_10.csv"
-    time_str = "2025-12-16 05:00:00+00:00"
-    n = 7
+    time_str = "2025-06-12 20:00:00+00:00"
+    n = 6
     verbose = True
     seed = 30
     #number_of_runs = 20
