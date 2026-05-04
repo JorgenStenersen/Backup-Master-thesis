@@ -1,3 +1,4 @@
+import json
 import math
 from datetime import datetime, timezone
 from pathlib import Path
@@ -648,7 +649,7 @@ def _gap_threshold_from_objective(objective_mean, gap_pct, epsilon):
     return scaled
 
 
-def _gap_threshold_for_iter(k, objective_mean, gap_pct, epsilon, warmup_iters=20):
+def _gap_threshold_for_iter(k, objective_mean, gap_pct, epsilon, warmup_iters=30):
     if k < warmup_iters:
         return epsilon
     return _gap_threshold_from_objective(objective_mean, gap_pct, epsilon)
@@ -693,10 +694,64 @@ def format_final_consensus(consensus) -> str:
     return "\n".join(lines)
 
 
+def _json_safe(value):
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _tuple_sort_key(key):
+    if isinstance(key, tuple) and len(key) >= 2:
+        return (str(key[0]), str(key[1]))
+    return (str(key), "")
+
+
+def consensus_to_json(consensus):
+    stage1_entries = []
+    for m in sorted(consensus.get("stage1", {}).keys(), key=lambda k: str(k)):
+        vals = consensus["stage1"][m]
+        stage1_entries.append({
+            "m": _json_safe(m),
+            "x": float(vals["x"]),
+            "r": float(vals["r"]),
+        })
+
+    stage2_entries = []
+    for key in sorted(consensus.get("stage2", {}).keys(), key=_tuple_sort_key):
+        m, u = key
+        vals = consensus["stage2"][key]
+        stage2_entries.append({
+            "m": _json_safe(m),
+            "u": _json_safe(u),
+            "x": float(vals["x"]),
+            "r": float(vals["r"]),
+        })
+
+    stage3_entries = []
+    for key in sorted(consensus.get("stage3", {}).keys(), key=_tuple_sort_key):
+        m, v = key
+        vals = consensus["stage3"][key]
+        stage3_entries.append({
+            "m": _json_safe(m),
+            "v": _json_safe(v),
+            "x": float(vals["x"]),
+            "r": float(vals["r"]),
+        })
+
+    return {
+        "stage1": stage1_entries,
+        "stage2": stage2_entries,
+        "stage3": stage3_entries,
+    }
+
+
 def write_bidding_policy(consensus, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as handle:
-        handle.write(format_final_consensus(consensus))
+        json.dump(consensus_to_json(consensus), handle, indent=2)
 
 
 def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0, verbose=True,
@@ -819,7 +874,7 @@ def run_progressive_hedging(time_str, n_total, n_per_bundle, num_bundles, seed=0
     if bidding_output_dir is not None:
         output_dir = Path(bidding_output_dir)
         safe_time = _sanitize_time_str(time_str)
-        policy_path = output_dir / f"bidding_policy_pha_{safe_time}_{_run_stamp()}.txt"
+        policy_path = output_dir / f"bidding_policy_pha_{safe_time}_{_run_stamp()}.json"
         write_bidding_policy(consensus, policy_path)
         if verbose:
             print(f"[PH] Bidding policy written to: {policy_path}")

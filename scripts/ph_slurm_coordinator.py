@@ -64,7 +64,7 @@ def _gap_threshold_from_objective(objective_mean: float | None, gap_pct: float, 
 
 
 def _gap_threshold_for_iter(iteration: int, objective_mean: float | None,
-                            gap_pct: float, epsilon: float, warmup_iters: int = 20) -> float:
+                            gap_pct: float, epsilon: float, warmup_iters: int = 30) -> float:
     if iteration < warmup_iters:
         return epsilon
     return _gap_threshold_from_objective(objective_mean, gap_pct, epsilon)
@@ -348,7 +348,7 @@ def run_distributed_ph(time_str: str, n_total: int, n_per_bundle: int, num_bundl
     print_final_consensus(consensus)
 
     policy_dir = work_dir.parent if work_dir.name.startswith("combo_") else work_dir
-    policy_name = f"bidding_policy_pha_{_sanitize_time_str(time_str)}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.txt"
+    policy_name = f"bidding_policy_pha_{_sanitize_time_str(time_str)}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.json"
     policy_path = policy_dir / policy_name
     write_bidding_policy(consensus, policy_path)
     print(f"[PH-SGE] Bidding policy written to: {policy_path}")
